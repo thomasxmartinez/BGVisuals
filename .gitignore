@@ -1,0 +1,41 @@
+# Ignore node_modules and build artifacts
+node_modules/
+dist/
+build/
+
+# Ignore audio files
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.aiff
+*.m4a
+
+# Ignore Photoshop and large design files
+*.psd
+*.ai
+*.xcf
+*.sketch
+*.tiff
+*.tif
+
+# Ignore images over 5MB (pattern-based, not enforced by git, but a reminder)
+# Use: git lfs or manual check for large images
+# Example: find . -type f -size +5M -name '*.png'
+
+# Ignore OS and IDE files
+.DS_Store
+*.log
+*.tmp
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore Vercel/Netlify build output
+.vercel/
+.netlify/
+
+# Ignore lock files (optional, if you want to keep them out)
+# package-lock.json
+yarn.lock 
