@@ -178,17 +178,17 @@ const AudioController: React.FC<AudioControllerProps> = ({
             arousal: rms * 2
           }
 
-          // Debug logging
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('Audio Features:', {
-              rms: rms.toFixed(4),
-              energy: audioFeatures.energy.toFixed(4),
-              bpm: audioFeatures.bpm.toFixed(1),
-              beat: audioFeatures.beat,
-              playerState: playerRef.current?.state,
-              time: ((Date.now() - startTimeRef.current) / 1000).toFixed(1)
-            })
-          }
+          // Debug logging - commented out to reduce console noise
+          // if (process.env.NODE_ENV !== 'production') {
+          //   console.log('Audio Features:', {
+          //     rms: rms.toFixed(4),
+          //     energy: audioFeatures.energy.toFixed(4),
+          //     bpm: audioFeatures.bpm.toFixed(1),
+          //     beat: audioFeatures.beat,
+          //     playerState: playerRef.current?.state,
+          //     time: ((Date.now() - startTimeRef.current) / 1000).toFixed(1)
+          //   })
+          // }
 
           onFeaturesUpdate(audioFeatures)
 

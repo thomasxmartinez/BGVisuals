@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import p5 from 'p5'
 import { AudioFeatures } from '../types/audio'
+import ThreeCubeDance from './ThreeCubeDance'
 
 interface CanvasVisualizerProps {
   audioFeatures: AudioFeatures
@@ -41,6 +42,11 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
   useEffect(() => { latestCurrentTime.current = currentTime }, [currentTime])
   useEffect(() => { latestCurrentScene.current = currentScene }, [currentScene])
   useEffect(() => { latestCurrentLyrics.current = currentLyrics }, [currentLyrics])
+  
+  // Debug logging for scene changes
+  useEffect(() => {
+    console.log(`🎭 Scene changed to: ${currentScene}`)
+  }, [currentScene])
 
   useEffect(() => {
     if (!canvasRef.current || isInitialized.current) return
@@ -64,8 +70,10 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         
         sketch.setup = () => {
           try {
+            console.log('🎯 CanvasVisualizer setup starting...')
             const canvasWidth = canvasRef.current!.offsetWidth
             const canvasHeight = canvasRef.current!.offsetHeight
+            console.log(`📐 Canvas dimensions: ${canvasWidth}x${canvasHeight}`)
             const canvas = sketch.createCanvas(canvasWidth, canvasHeight)
             canvas.parent(canvasRef.current!)
             sketch.colorMode(sketch.HSB, 360, 100, 100, 1)
@@ -77,12 +85,14 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
                 ready = true
                 isInitialized.current = true
                 setIsLoading(false)
+                console.log('✅ CanvasVisualizer ready with watermark')
                 if (onReady) onReady()
               }, () => {
                 // Continue without watermark
                 ready = true
                 isInitialized.current = true
                 setIsLoading(false)
+                console.log('✅ CanvasVisualizer ready without watermark')
                 if (onReady) onReady()
               })
             } catch (error) {
@@ -102,6 +112,13 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         
         sketch.draw = () => {
           if (!ready) return
+          
+          // Debug logging - only log every 60 frames (once per second at 60fps)
+          if (!(sketch as any).frameCount) (sketch as any).frameCount = 0
+          ;(sketch as any).frameCount++
+          if ((sketch as any).frameCount % 60 === 0) {
+            console.log(`🎬 Draw loop running - ready: ${ready}, isPlaying: ${latestIsPlaying.current}, currentScene: ${latestCurrentScene.current}`)
+          }
           
           // Get audio features with smoothing
           const audioFeatures = latestAudioFeatures.current
@@ -183,8 +200,11 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         // Scene rendering functions with stabilized parameters
         const renderScene = (sketch: p5, sceneIndex: number, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
           
-          // Debug logging
-          console.log(`Rendering scene ${sceneIndex}, isPlaying: ${_isPlaying}, energy: ${audioFeatures.energy}, canvas size: ${sketch.width}x${sketch.height}`)
+          // Debug logging - only log once per scene change
+          if (!(sketch as any).lastLoggedScene || (sketch as any).lastLoggedScene !== sceneIndex) {
+            console.log(`🎨 Rendering scene ${sceneIndex}, isPlaying: ${_isPlaying}, energy: ${audioFeatures.energy}, canvas size: ${sketch.width}x${sketch.height}`)
+            ;(sketch as any).lastLoggedScene = sceneIndex
+          }
           
           // Array of all available render functions
           const renderFunctions = [
@@ -208,165 +228,27 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
           }
         }
         
-        // Scene 0: Cube Dance - Simple working version
+        // Scene 0: Cube Dance - Three.js version
         const renderCubeDance = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
           const energy = audioFeatures.energy || 0
           const volume = audioFeatures.rms || 0
           const beat = audioFeatures.beat
           
-          console.log('Cube Dance rendering, energy:', energy, 'volume:', volume)
+          console.log('Three.js Cube Dance rendering, energy:', energy, 'volume:', volume)
           
-          // Transparent background to show SVG watermark
+          // Clear the p5.js canvas and show a placeholder
           sketch.clear()
           
-          // Create subtle gradient overlay
-          for (let y = 0; y < sketch.height; y++) {
-            const inter = sketch.map(y, 0, sketch.height, 0, 1)
-            const c = sketch.lerpColor(sketch.color(0, 51, 77, 0.1), sketch.color(0, 0, 0, 0.05), inter)
-            sketch.stroke(c)
-            sketch.line(0, y, sketch.width, y)
-          }
+          // Show a message that Three.js is being used
+          sketch.fill(255, 255, 255, 0.8)
+          sketch.textAlign(sketch.CENTER, sketch.CENTER)
+          sketch.textSize(24)
+          sketch.text('Three.js Cube Dance Scene', sketch.width / 2, sketch.height / 2)
+          sketch.text(`Energy: ${energy.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 40)
+          sketch.text(`Volume: ${volume.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 70)
           
-          // Simple grid of cubes
-          const gridSize = 40
-          const boxSize = 15 + volume * 10
-          const cols = Math.floor(sketch.width / gridSize)
-          const rows = Math.floor(sketch.height / gridSize)
-          
-          // Initialize cube data on first call
-          if (!(sketch as any).cubeData) {
-            (sketch as any).cubeData = {
-              cubes: [],
-              time: 0
-            }
-            
-            // Create grid of cubes
-            for (let i = 0; i < cols; i++) {
-              for (let j = 0; j < rows; j++) {
-                const x = i * gridSize + gridSize/2
-                const y = j * gridSize + gridSize/2
-                const isEvenCube = (i + j) % 2 === 0
-                
-                (sketch as any).cubeData.cubes.push({
-                  x: x,
-                  y: y,
-                  originalY: y,
-                  rotation: 0,
-                  rotationSpeed: sketch.random(0.02, 0.08),
-                  isEven: isEvenCube,
-                  material: isEvenCube ? 'light' : 'dark',
-                  animationDelay: (i + j) * 0.1,
-                  bounceHeight: sketch.random(2, 6),
-                  bounceSpeed: sketch.random(0.02, 0.06),
-                  zRotation: 0,
-                  zRotationSpeed: sketch.random(0.01, 0.05)
-                })
-              }
-            }
-          }
-          
-          const cubeData = (sketch as any).cubeData
-          cubeData.time += 0.016 // ~60fps
-          
-          // Material colors with transparency
-          const lightMaterial = {
-            color: sketch.color(125, 125, 125, 0.8), // #7d7d7d with alpha
-            emissive: sketch.color(15, 56, 85, 0.6)  // #0f3855 with alpha
-          }
-          
-          const darkMaterial = {
-            color: sketch.color(37, 34, 47, 0.8),    // #25222f with alpha
-            emissive: sketch.color(3, 30, 49, 0.6)   // #031e31 with alpha
-          }
-          
-          // Update and draw cubes
-          cubeData.cubes.forEach((cube: any, index: number) => {
-            // Staggered bounce animation
-            const bounceOffset = sketch.sin(cubeData.time * cube.bounceSpeed + cube.animationDelay) * cube.bounceHeight
-            cube.y = cube.originalY + bounceOffset
-            
-            // Continuous rotation
-            cube.rotation += cube.rotationSpeed
-            cube.zRotation += cube.zRotationSpeed
-            
-            // Audio reactivity
-            const audioScale = 1 + energy * 0.3
-            const finalSize = boxSize * audioScale
-            
-            sketch.push()
-            sketch.translate(cube.x, cube.y)
-            sketch.rotate(cube.rotation)
-            
-            // Apply material
-            let material
-            if (cube.material === 'light') {
-              material = lightMaterial
-            } else {
-              material = darkMaterial
-            }
-            
-            // Beat-reactive glow
-            if (beat) {
-              const glowSize = finalSize + 8
-              sketch.fill(material.color)
-              sketch.noStroke()
-              sketch.rect(-glowSize/2, -glowSize/2, glowSize, glowSize, 4)
-            }
-            
-            // Main cube with rounded corners
-            sketch.fill(material.color)
-            sketch.stroke(material.emissive)
-            sketch.strokeWeight(1)
-            sketch.rect(-finalSize/2, -finalSize/2, finalSize, finalSize, 4)
-            
-            // Inner highlight for depth
-            const highlightSize = finalSize * 0.7
-            sketch.fill(material.color)
-            sketch.noStroke()
-            sketch.rect(-highlightSize/2, -highlightSize/2, highlightSize, highlightSize, 2)
-            
-            sketch.pop()
-          })
-          
-          // Add lighting effects
-          const lightPositions = [
-            { x: sketch.width * 0.2, y: sketch.height * 0.2, color: sketch.color(255, 255, 255, 0.3) },
-            { x: sketch.width * 0.5, y: sketch.height * 0.1, color: sketch.color(0, 255, 0, 0.3) },
-            { x: sketch.width * 0.8, y: sketch.height * 0.3, color: sketch.color(255, 0, 255, 0.3) }
-          ]
-          
-          lightPositions.forEach((light, i) => {
-            const lightSize = 80 + energy * 40
-            
-            // Light glow
-            for (let j = 6; j > 0; j--) {
-              const glowSize = lightSize + j * 15
-              const alpha = (0.08 - j * 0.01) * (0.5 + volume) * 0.5 // Reduced alpha
-              sketch.fill(light.color)
-              sketch.circle(light.x, light.y, glowSize)
-            }
-          })
-          
-          // Add atmospheric particles
-          const particleCount = 15 + Math.floor(volume * 25)
-          for (let i = 0; i < particleCount; i++) {
-            const x = sketch.noise(i * 0.1, cubeData.time * 0.3) * sketch.width
-            const y = sketch.noise(i * 0.1 + 100, cubeData.time * 0.3) * sketch.height
-            const size = 2 + volume * 3 + (beat ? 2 : 0)
-            const hue = (120 + i * 15 + energy * 10) % 360
-            
-            sketch.fill(hue, 60, 80, 0.3) // Reduced alpha
-            sketch.noStroke()
-            sketch.circle(x, y, size)
-          }
-          
-          // Display lyrics if available
-          if (lyrics && lyrics.length > 0) {
-            sketch.fill(120, 80, 90, 0.8)
-            sketch.textAlign(sketch.CENTER, sketch.BOTTOM)
-            sketch.textSize(18)
-            sketch.text(lyrics[0], sketch.width / 2, sketch.height - 20)
-          }
+          // Note: The actual Three.js rendering will be handled by the ThreeCubeDance component
+          // This p5.js function is just a placeholder
         }
         
         // Scene 1: Shader Spheres (Three.js inspired by https://codepen.io/r21nomi/pen/LJmzbB)
@@ -484,8 +366,8 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
           // Add floating energy particles
           const particleCount = 30 + Math.floor(volume * 40)
           for (let i = 0; i < particleCount; i++) {
-            const x = sketch.noise(i * 0.1, audioTime * 0.5) * sketch.width
-            const y = sketch.noise(i * 0.1 + 100, audioTime * 0.5) * sketch.height
+            const x = (Math.sin(i * 0.1 + audioTime * 0.5) * 0.5 + 0.5) * sketch.width
+            const y = (Math.sin(i * 0.1 + 100 + audioTime * 0.5) * 0.5 + 0.5) * sketch.height
             const size = 2 + volume * 8 + (beat ? 4 : 0)
             const hue = (180 + i * 12 + audioTime * 40) % 360
             
@@ -535,15 +417,15 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             // Create hearts
             for (let i = 0; i < 25; i++) {
               (sketch as any).heartsData.hearts.push({
-                x: sketch.random(-50, sketch.width + 50),
-                y: sketch.random(-200, -50),
-                vx: sketch.random(-2, 2),
-                vy: sketch.random(-1, 1),
-                size: sketch.random(15, 35),
-                rotation: sketch.random(0, sketch.TWO_PI),
-                rotationSpeed: sketch.random(-0.1, 0.1),
-                color: sketch.color(sketch.random([280, 320, 340]), 80, 90), // Pink/purple variations
-                pulse: sketch.random(0, sketch.TWO_PI)
+                            x: -50 + Math.random() * (sketch.width + 100),
+            y: -200 + Math.random() * 150,
+            vx: -2 + Math.random() * 4,
+            vy: -1 + Math.random() * 2,
+            size: 15 + Math.random() * 20,
+            rotation: Math.random() * sketch.TWO_PI,
+            rotationSpeed: -0.1 + Math.random() * 0.2,
+            color: sketch.color([280, 320, 340][Math.floor(Math.random() * 3)], 80, 90), // Pink/purple variations
+            pulse: Math.random() * sketch.TWO_PI
               })
             }
           }
@@ -635,12 +517,12 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             (sketch as any).particlesData = []
             for (let i = 0; i < 50; i++) {
               (sketch as any).particlesData.push({
-                x: sketch.random(sketch.width),
-                y: sketch.random(sketch.height),
-                vx: sketch.random(-0.5, 0.5),
-                vy: sketch.random(-0.5, 0.5),
-                size: sketch.random(2, 6),
-                life: sketch.random(0, sketch.TWO_PI)
+                            x: Math.random() * sketch.width,
+            y: Math.random() * sketch.height,
+            vx: -0.5 + Math.random(),
+            vy: -0.5 + Math.random(),
+            size: 2 + Math.random() * 4,
+            life: Math.random() * sketch.TWO_PI
               })
             }
           }
@@ -710,7 +592,19 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
 
   return (
     <div className="relative w-full h-full bg-transparent p-0 m-0 flex-1" style={{ minHeight: 0, minWidth: 0 }}>
-      {/* Canvas container for p5.js scenes */}
+      {/* Three.js Cube Dance for scene 0 */}
+      {currentScene === 0 && (
+        <div className="absolute inset-0 z-10">
+          <ThreeCubeDance 
+            audioFeatures={audioFeatures}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+          />
+        </div>
+      )}
+      
+      {/* Canvas container for p5.js scenes (completely hidden when Three.js is active) */}
+      {currentScene !== 0 && (
         <div 
           ref={canvasRef} 
           className="w-full h-full p-0 m-0 flex-1"
@@ -720,9 +614,10 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             minWidth: 0
           }}
         />
+      )}
       
       {/* Loading overlay */}
-      {isLoading && (
+      {isLoading && currentScene !== 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="text-cyan-400 text-xl font-mono">
             Loading Visualizer...
