@@ -7,11 +7,11 @@ interface CanvasVisualizerProps {
   isPlaying: boolean
   currentTime: number
   isAudioReady?: boolean
-  isAudioContextReady?: boolean
-  currentBpm?: number
   currentScene?: number
+  sceneMap?: number[]
   audioStuck?: boolean
   onReady?: () => void
+  currentLyrics?: string[]
 }
 
 const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
@@ -19,15 +19,14 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
   isPlaying,
   currentTime,
   isAudioReady = false,
-  isAudioContextReady = false,
-  currentBpm = 120,
   currentScene = 0,
+  sceneMap = [],
   audioStuck = false,
-  onReady
+  onReady,
+  currentLyrics = []
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [loadingDots, setLoadingDots] = useState('')
   const p5Instance = useRef<p5 | null>(null)
   const isInitialized = useRef(false)
 
@@ -35,9 +34,13 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
   const latestAudioFeatures = useRef(audioFeatures)
   const latestIsPlaying = useRef(isPlaying)
   const latestCurrentTime = useRef(currentTime)
+  const latestCurrentScene = useRef(currentScene)
+  const latestCurrentLyrics = useRef(currentLyrics)
   useEffect(() => { latestAudioFeatures.current = audioFeatures }, [audioFeatures])
   useEffect(() => { latestIsPlaying.current = isPlaying }, [isPlaying])
   useEffect(() => { latestCurrentTime.current = currentTime }, [currentTime])
+  useEffect(() => { latestCurrentScene.current = currentScene }, [currentScene])
+  useEffect(() => { latestCurrentLyrics.current = currentLyrics }, [currentLyrics])
 
   useEffect(() => {
     if (!canvasRef.current || isInitialized.current) return
@@ -58,11 +61,12 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         let smoothedTreble = 0
         let smoothedVolume = 0
         let lastBeatTime = 0
-        let beatCooldown = 0
         
         sketch.setup = () => {
           try {
-            const canvas = sketch.createCanvas(canvasRef.current!.offsetWidth, canvasRef.current!.offsetHeight)
+            const canvasWidth = canvasRef.current!.offsetWidth
+            const canvasHeight = canvasRef.current!.offsetHeight
+            const canvas = sketch.createCanvas(canvasWidth, canvasHeight)
             canvas.parent(canvasRef.current!)
             sketch.colorMode(sketch.HSB, 360, 100, 100, 1)
             sketch.noStroke()
@@ -88,6 +92,8 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
               setIsLoading(false)
               if (onReady) onReady()
             }
+            
+
           } catch (error) {
             console.error('Canvas setup error:', error)
             setIsLoading(false)
@@ -101,6 +107,7 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
           const audioFeatures = latestAudioFeatures.current
           const isPlaying = latestIsPlaying.current
           const currentTime = latestCurrentTime.current
+          const currentScene = latestCurrentScene.current
           
           // Smooth audio features to prevent seizure-inducing flickering
           const smoothingFactor = 0.1 // Lower = smoother, less reactive
@@ -116,16 +123,12 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             lastBeatTime = currentTime
           }
           
-          // Scene management - change every 90 seconds for stability
-          const sceneDuration = 90 // longer duration
-          const energyThreshold = 0.5 // higher threshold
-          const shouldChangeScene = 
-            (currentTime - lastSceneChange > sceneDuration) || 
-            (smoothedBass > energyThreshold && currentTime - lastSceneChange > 45)
+          // Use the scene from props instead of internal management
+          const targetSceneIndex = currentScene
           
-          if (shouldChangeScene && isPlaying) {
-            currentSceneIndex = (currentSceneIndex + 1) % 4
-            lastSceneChange = currentTime
+          // Only change scene if it's different from current
+          if (targetSceneIndex !== currentSceneIndex) {
+            currentSceneIndex = targetSceneIndex
             sceneTransition = 0
           }
           
@@ -147,20 +150,23 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             beat: shouldFlash
           }
           
-          // Render with transition effect
+          // Get current lyrics from props
+          const currentLyrics = latestCurrentLyrics.current
+          
+          // In the draw loop, only crossfade if sceneTransition is true, otherwise only show currentScene
           if (sceneTransition < 0.95) {
             // Render current scene with fade out
             const currentAlpha = 1 - sceneTransition
             sketch.push()
             sketch.tint(255, 255, 255, currentAlpha * 255)
-            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1)
+            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1, currentLyrics)
             sketch.pop()
           } else {
             // Render new scene with fade in
             const newAlpha = (sceneTransition - 0.95) * 20 // 0.05 * 20 = 1
             sketch.push()
             sketch.tint(255, 255, 255, newAlpha * 255)
-            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1)
+            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1, currentLyrics)
             sketch.pop()
           }
           
@@ -175,160 +181,503 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
         }
         
         // Scene rendering functions with stabilized parameters
-        const renderScene = (sketch: p5, sceneIndex: number, audioFeatures: AudioFeatures, isPlaying: boolean, transition: number) => {
-          const bass = audioFeatures.energy || 0
-          const treble = audioFeatures.spectralCentroid || 0
-          const volume = audioFeatures.rms || 0
-          const bpm = audioFeatures.bpm || 120
-          const beat = audioFeatures.beat
+        const renderScene = (sketch: p5, sceneIndex: number, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
           
-          switch (sceneIndex) {
-            case 0:
-              renderNeonGrid(sketch, audioFeatures, isPlaying, transition)
-              break
-            case 1:
-              renderVaporwaveOrbs(sketch, audioFeatures, isPlaying, transition)
-              break
-            case 2:
-              renderPoolPartyWaves(sketch, audioFeatures, isPlaying, transition)
-              break
-            case 3:
-              renderCyberRave(sketch, audioFeatures, isPlaying, transition)
-              break
+          // Debug logging
+          console.log(`Rendering scene ${sceneIndex}, isPlaying: ${_isPlaying}, energy: ${audioFeatures.energy}, canvas size: ${sketch.width}x${sketch.height}`)
+          
+          // Array of all available render functions
+          const renderFunctions = [
+            renderCubeDance,
+            renderScene2,
+            renderScene3
+          ]
+          
+          // Use sceneIndex directly (no more sceneMap)
+          const actualSceneIndex = sceneIndex % renderFunctions.length
+          const renderFunction = renderFunctions[actualSceneIndex]
+          
+          // Call the render function with appropriate parameters
+          if (renderFunction) {
+            // Always pass lyrics - functions that don't need it will ignore it
+            renderFunction(sketch, audioFeatures, _isPlaying, _transition, lyrics)
+          } else {
+            // Fallback to first scene if function not found
+            console.log('No render function found, using fallback')
+            renderCubeDance(sketch, audioFeatures, _isPlaying, _transition, lyrics)
           }
         }
         
-        const renderNeonGrid = (sketch: p5, audioFeatures: AudioFeatures, isPlaying: boolean, transition: number) => {
-          const bass = audioFeatures.energy || 0
+        // Scene 0: Cube Dance - Simple working version
+        const renderCubeDance = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
+          const energy = audioFeatures.energy || 0
           const volume = audioFeatures.rms || 0
           const beat = audioFeatures.beat
           
-          // Stabilized neon grid pattern
-          const gridSize = 60 + bass * 50 // reduced reactivity
-          const neonIntensity = 0.2 + volume * 0.4 // reduced intensity
+          console.log('Cube Dance rendering, energy:', energy, 'volume:', volume)
           
-          for (let x = 0; x < sketch.width; x += gridSize) {
-            for (let y = 0; y < sketch.height; y += gridSize) {
-              const hue = (200 + x * 0.05 + y * 0.05) % 360 // slower color change
-              const alpha = neonIntensity * (0.3 + sketch.noise(x * 0.005, y * 0.005) * 0.4) // gentler noise
-              
-              if (beat) {
-                sketch.fill(hue, 80, 80, alpha * 1.2) // reduced beat flash
-                sketch.rect(x - 1, y - 1, gridSize + 2, gridSize + 2) // smaller beat effect
-              } else {
-                sketch.fill(hue, 60, 60, alpha) // more subtle base
-                sketch.rect(x, y, gridSize, gridSize)
+          // Transparent background to show SVG watermark
+          sketch.clear()
+          
+          // Create subtle gradient overlay
+          for (let y = 0; y < sketch.height; y++) {
+            const inter = sketch.map(y, 0, sketch.height, 0, 1)
+            const c = sketch.lerpColor(sketch.color(0, 51, 77, 0.1), sketch.color(0, 0, 0, 0.05), inter)
+            sketch.stroke(c)
+            sketch.line(0, y, sketch.width, y)
+          }
+          
+          // Simple grid of cubes
+          const gridSize = 40
+          const boxSize = 15 + volume * 10
+          const cols = Math.floor(sketch.width / gridSize)
+          const rows = Math.floor(sketch.height / gridSize)
+          
+          // Initialize cube data on first call
+          if (!(sketch as any).cubeData) {
+            (sketch as any).cubeData = {
+              cubes: [],
+              time: 0
+            }
+            
+            // Create grid of cubes
+            for (let i = 0; i < cols; i++) {
+              for (let j = 0; j < rows; j++) {
+                const x = i * gridSize + gridSize/2
+                const y = j * gridSize + gridSize/2
+                const isEvenCube = (i + j) % 2 === 0
+                
+                (sketch as any).cubeData.cubes.push({
+                  x: x,
+                  y: y,
+                  originalY: y,
+                  rotation: 0,
+                  rotationSpeed: sketch.random(0.02, 0.08),
+                  isEven: isEvenCube,
+                  material: isEvenCube ? 'light' : 'dark',
+                  animationDelay: (i + j) * 0.1,
+                  bounceHeight: sketch.random(2, 6),
+                  bounceSpeed: sketch.random(0.02, 0.06),
+                  zRotation: 0,
+                  zRotationSpeed: sketch.random(0.01, 0.05)
+                })
               }
             }
           }
-        }
-        
-        const renderVaporwaveOrbs = (sketch: p5, audioFeatures: AudioFeatures, isPlaying: boolean, transition: number) => {
-          const bass = audioFeatures.energy || 0
-          const treble = audioFeatures.spectralCentroid || 0
-          const volume = audioFeatures.rms || 0
-          const beat = audioFeatures.beat
           
-          // Stabilized vaporwave orbs
-          const orbCount = 3 + Math.floor(bass * 5) // fewer orbs
+          const cubeData = (sketch as any).cubeData
+          cubeData.time += 0.016 // ~60fps
           
-          for (let i = 0; i < orbCount; i++) {
-            const x = sketch.width * (0.2 + i * 0.2)
-            const y = sketch.height * 0.5 + sketch.sin(sketch.frameCount * 0.01 + i) * 60 // slower movement
-            const size = 40 + bass * 60 + (beat ? 10 : 0) // reduced size changes
-            const hue = (270 + i * 30 + sketch.frameCount * 0.2) % 360 // slower color rotation
-            
-            // Gentler orb glow effect
-            for (let j = 3; j > 0; j--) {
-              const glowSize = size + j * 15
-              const alpha = (0.2 - j * 0.05) * (0.3 + volume) // reduced alpha
-              sketch.fill(hue, 70, 70, alpha)
-              sketch.circle(x, y, glowSize)
-            }
-            
-            // Core orb
-            sketch.fill(hue, 80, 80, 0.6) // more subtle
-            sketch.circle(x, y, size)
-          }
-        }
-        
-        const renderPoolPartyWaves = (sketch: p5, audioFeatures: AudioFeatures, isPlaying: boolean, transition: number) => {
-          const bass = audioFeatures.energy || 0
-          const treble = audioFeatures.spectralCentroid || 0
-          const volume = audioFeatures.rms || 0
-          const beat = audioFeatures.beat
-          
-          // Stabilized pool party waves
-          const waveCount = 2 // fewer waves
-          const waveHeight = 30 + bass * 50 // reduced height
-          
-          for (let i = 0; i < waveCount; i++) {
-            const hue = (50 + i * 20) % 360
-            const y = sketch.height * 0.3 + i * 80
-            
-            sketch.beginShape()
-            sketch.fill(hue, 80, 80, 0.3) // more subtle
-            
-            for (let x = 0; x < sketch.width; x += 15) { // larger step for smoother waves
-              const waveY = y + sketch.sin(x * 0.005 + sketch.frameCount * 0.01 + i) * waveHeight
-              sketch.vertex(x, waveY)
-            }
-            
-            sketch.vertex(sketch.width, sketch.height)
-            sketch.vertex(0, sketch.height)
-            sketch.endShape(sketch.CLOSE)
+          // Material colors with transparency
+          const lightMaterial = {
+            color: sketch.color(125, 125, 125, 0.8), // #7d7d7d with alpha
+            emissive: sketch.color(15, 56, 85, 0.6)  // #0f3855 with alpha
           }
           
-          // Fewer floating particles
-          const particleCount = Math.floor(10 + volume * 20)
+          const darkMaterial = {
+            color: sketch.color(37, 34, 47, 0.8),    // #25222f with alpha
+            emissive: sketch.color(3, 30, 49, 0.6)   // #031e31 with alpha
+          }
+          
+          // Update and draw cubes
+          cubeData.cubes.forEach((cube: any, index: number) => {
+            // Staggered bounce animation
+            const bounceOffset = sketch.sin(cubeData.time * cube.bounceSpeed + cube.animationDelay) * cube.bounceHeight
+            cube.y = cube.originalY + bounceOffset
+            
+            // Continuous rotation
+            cube.rotation += cube.rotationSpeed
+            cube.zRotation += cube.zRotationSpeed
+            
+            // Audio reactivity
+            const audioScale = 1 + energy * 0.3
+            const finalSize = boxSize * audioScale
+            
+            sketch.push()
+            sketch.translate(cube.x, cube.y)
+            sketch.rotate(cube.rotation)
+            
+            // Apply material
+            let material
+            if (cube.material === 'light') {
+              material = lightMaterial
+            } else {
+              material = darkMaterial
+            }
+            
+            // Beat-reactive glow
+            if (beat) {
+              const glowSize = finalSize + 8
+              sketch.fill(material.color)
+              sketch.noStroke()
+              sketch.rect(-glowSize/2, -glowSize/2, glowSize, glowSize, 4)
+            }
+            
+            // Main cube with rounded corners
+            sketch.fill(material.color)
+            sketch.stroke(material.emissive)
+            sketch.strokeWeight(1)
+            sketch.rect(-finalSize/2, -finalSize/2, finalSize, finalSize, 4)
+            
+            // Inner highlight for depth
+            const highlightSize = finalSize * 0.7
+            sketch.fill(material.color)
+            sketch.noStroke()
+            sketch.rect(-highlightSize/2, -highlightSize/2, highlightSize, highlightSize, 2)
+            
+            sketch.pop()
+          })
+          
+          // Add lighting effects
+          const lightPositions = [
+            { x: sketch.width * 0.2, y: sketch.height * 0.2, color: sketch.color(255, 255, 255, 0.3) },
+            { x: sketch.width * 0.5, y: sketch.height * 0.1, color: sketch.color(0, 255, 0, 0.3) },
+            { x: sketch.width * 0.8, y: sketch.height * 0.3, color: sketch.color(255, 0, 255, 0.3) }
+          ]
+          
+          lightPositions.forEach((light, i) => {
+            const lightSize = 80 + energy * 40
+            
+            // Light glow
+            for (let j = 6; j > 0; j--) {
+              const glowSize = lightSize + j * 15
+              const alpha = (0.08 - j * 0.01) * (0.5 + volume) * 0.5 // Reduced alpha
+              sketch.fill(light.color)
+              sketch.circle(light.x, light.y, glowSize)
+            }
+          })
+          
+          // Add atmospheric particles
+          const particleCount = 15 + Math.floor(volume * 25)
           for (let i = 0; i < particleCount; i++) {
-            const x = sketch.noise(i * 0.1, sketch.frameCount * 0.005) * sketch.width
-            const y = sketch.noise(i * 0.1 + 100, sketch.frameCount * 0.005) * sketch.height * 0.6
-            const size = 2 + volume * 5 // smaller particles
-            const hue = (50 + i * 10) % 360
+            const x = sketch.noise(i * 0.1, cubeData.time * 0.3) * sketch.width
+            const y = sketch.noise(i * 0.1 + 100, cubeData.time * 0.3) * sketch.height
+            const size = 2 + volume * 3 + (beat ? 2 : 0)
+            const hue = (120 + i * 15 + energy * 10) % 360
             
-            sketch.fill(hue, 80, 80, 0.6)
+            sketch.fill(hue, 60, 80, 0.3) // Reduced alpha
+            sketch.noStroke()
             sketch.circle(x, y, size)
+          }
+          
+          // Display lyrics if available
+          if (lyrics && lyrics.length > 0) {
+            sketch.fill(120, 80, 90, 0.8)
+            sketch.textAlign(sketch.CENTER, sketch.BOTTOM)
+            sketch.textSize(18)
+            sketch.text(lyrics[0], sketch.width / 2, sketch.height - 20)
           }
         }
         
-        const renderCyberRave = (sketch: p5, audioFeatures: AudioFeatures, isPlaying: boolean, transition: number) => {
+        // Scene 1: Shader Spheres (Three.js inspired by https://codepen.io/r21nomi/pen/LJmzbB)
+        const renderScene2 = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
           const bass = audioFeatures.energy || 0
-          const treble = audioFeatures.spectralCentroid || 0
           const volume = audioFeatures.rms || 0
           const beat = audioFeatures.beat
           
-          // Stabilized cyber rave laser beams
-          const beamCount = 6 // fewer beams
+          // Transparent background to show SVG watermark
+          sketch.clear()
+          
+          // Create subtle gradient overlay
+          for (let y = 0; y < sketch.height; y++) {
+            const inter = sketch.map(y, 0, sketch.height, 0, 1)
+            const c = sketch.lerpColor(sketch.color(0, 51, 77, 0.1), sketch.color(0, 0, 0, 0.05), inter)
+            sketch.stroke(c)
+            sketch.line(0, y, sketch.width, y)
+          }
+          
+          // Audio-reactive parameters
+          const time = sketch.frameCount * 0.02
+          const audioTime = time * (1 + volume * 0.5)
+          const sphereCount = 24 + Math.floor(bass * 20)
+          const sphereSize = 15 + volume * 20 + (beat ? 10 : 0)
+          
+          // Synthwave colors
+          const baseColor = sketch.color(0, 51, 77) // Dark cyan
+          const accentColor = sketch.color(67, 250, 142) // Synthwave green
+          const glowColor = sketch.color(255, 126, 219) // Pink
+          
+          // Draw animated spheres in circular patterns
           const centerX = sketch.width / 2
           const centerY = sketch.height / 2
           
-          for (let i = 0; i < beamCount; i++) {
-            const angle = (i / beamCount) * sketch.PI * 2 + sketch.frameCount * 0.005 // slower rotation
-            const endX = centerX + sketch.cos(angle) * sketch.width
-            const endY = centerY + sketch.sin(angle) * sketch.height
-            const hue = (210 + i * 45) % 360
-            const intensity = 0.2 + volume * 0.4 // reduced intensity
+          // Multiple rings of spheres
+          const rings = [3, 2, 1.5] // Ring multipliers
+          
+          rings.forEach((ringMultiplier, ringIndex) => {
+            const radius = 100 * ringMultiplier + bass * 50
+            const ringSphereCount = sphereCount + ringIndex * 8
             
-            sketch.stroke(hue, 80, 80, intensity)
-            sketch.strokeWeight(2 + bass * 5) // reduced weight
-            sketch.line(centerX, centerY, endX, endY)
+            for (let i = 0; i < ringSphereCount; i++) {
+              const angle = (sketch.TWO_PI * i) / ringSphereCount + audioTime * 0.5
+            const x = centerX + sketch.cos(angle) * radius
+            const y = centerY + sketch.sin(angle) * radius
+              
+              // Audio-reactive sphere properties
+              const size = sphereSize * (1 + sketch.sin(audioTime * 2 + i * 0.5) * 0.3)
+              const rotation = audioTime * 4 + i * 0.2
+              
+              // Shader-like effect using p5.js
+              sketch.push()
+              sketch.translate(x, y)
+              sketch.rotate(rotation)
+              
+              // Create shader-like glow effect
+              const glowLayers = 8
+              for (let layer = glowLayers; layer > 0; layer--) {
+                const layerSize = size + layer * 8
+                const alpha = (0.3 - layer * 0.03) * (0.5 + volume)
+                
+                // Color variation based on position and audio
+                const hue = (180 + i * 15 + audioTime * 50) % 360
+                const saturation = 80 + volume * 20
+                const brightness = 60 + volume * 40
+                
+                sketch.fill(hue, saturation, brightness, alpha)
+                sketch.noStroke()
+                sketch.circle(0, 0, layerSize)
+              }
+              
+              // Core sphere
+              const coreHue = (200 + ringIndex * 30 + audioTime * 30) % 360
+              sketch.fill(coreHue, 90, 90, 0.9)
+              sketch.circle(0, 0, size)
+              
+              // Inner highlight
+              sketch.fill(coreHue, 50, 100, 0.8)
+              sketch.circle(0, 0, size * 0.6)
+              
+            sketch.pop()
+          }
+          })
+          
+          // Draw animated grid walls (shader-like effect)
+          const gridSize = 40 + Math.floor(bass * 20)
+          const cols = Math.floor(sketch.width / gridSize) + 2
+          const rows = Math.floor(sketch.height / gridSize) + 2
+          
+          for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+              const x = j * gridSize
+              const y = i * gridSize
+              
+              // Shader-like brightness calculation
+              let brightness = 0
+              const speed = audioTime * 1.5
+              
+              for (let k = 0; k < 8; k++) {
+                const uvX = (x / sketch.width) * 8
+                const uvY = (y / sketch.height) * 8
+                brightness += 0.1 / sketch.abs(sketch.sin(sketch.PI * uvX) * sketch.sin(sketch.PI * uvY) * sketch.sin(sketch.PI * speed + k))
+              }
+              
+              // Audio-reactive grid
+              const gridHue = (200 + (i + j) * 5 + audioTime * 20) % 360
+              const alpha = brightness * (0.1 + volume * 0.3) * (beat ? 2 : 1)
+              
+              sketch.fill(gridHue, 80, 80, alpha)
+              sketch.noStroke()
+              sketch.rect(x, y, gridSize, gridSize)
+            }
           }
           
-          sketch.noStroke()
+          // Add floating energy particles
+          const particleCount = 30 + Math.floor(volume * 40)
+          for (let i = 0; i < particleCount; i++) {
+            const x = sketch.noise(i * 0.1, audioTime * 0.5) * sketch.width
+            const y = sketch.noise(i * 0.1 + 100, audioTime * 0.5) * sketch.height
+            const size = 2 + volume * 8 + (beat ? 4 : 0)
+            const hue = (180 + i * 12 + audioTime * 40) % 360
+            
+            // Particle glow
+            for (let j = 4; j > 0; j--) {
+              const glowSize = size + j * 6
+              const alpha = (0.4 - j * 0.08) * (0.3 + volume)
+            sketch.fill(hue, 80, 80, alpha)
+              sketch.noStroke()
+              sketch.circle(x, y, glowSize)
+            }
+            
+            // Core particle
+            sketch.fill(hue, 90, 90, 0.9)
+            sketch.circle(x, y, size)
+          }
           
-          // Gentler central energy core
-          const coreSize = 40 + bass * 80 // reduced size
-          const coreHue = (210 + sketch.frameCount * 1) % 360 // slower color change
-          
-          for (let i = 3; i > 0; i--) {
-            const size = coreSize + i * 20
-            const alpha = (0.3 - i * 0.08) * (0.3 + volume) // reduced alpha
-            sketch.fill(coreHue, 80, 80, alpha)
-            sketch.circle(centerX, centerY, size)
+          // Display lyrics if available
+          if (lyrics.length > 0) {
+            sketch.push()
+            sketch.textAlign(sketch.CENTER, sketch.CENTER)
+            sketch.textSize(24 + volume * 8)
+            sketch.fill(accentColor)
+            sketch.stroke(0)
+            sketch.strokeWeight(2)
+            
+            const currentLyric = lyrics[Math.floor(audioTime * 0.5) % lyrics.length]
+            if (currentLyric) {
+              sketch.text(currentLyric, sketch.width / 2, sketch.height * 0.9)
+            }
+            sketch.pop()
           }
         }
-        
+
+        // Scene 3: Physics-based hearts animation inspired by "Pile of Hearts"
+        const renderScene3 = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
+          // Initialize physics variables on first call
+          if (!(sketch as any).heartsData) {
+            (sketch as any).heartsData = {
+              hearts: [],
+              gravity: 0.3,
+              bounce: 0.7,
+              friction: 0.98,
+              groundY: sketch.height * 0.8
+            }
+            
+            // Create hearts
+            for (let i = 0; i < 25; i++) {
+              (sketch as any).heartsData.hearts.push({
+                x: sketch.random(-50, sketch.width + 50),
+                y: sketch.random(-200, -50),
+                vx: sketch.random(-2, 2),
+                vy: sketch.random(-1, 1),
+                size: sketch.random(15, 35),
+                rotation: sketch.random(0, sketch.TWO_PI),
+                rotationSpeed: sketch.random(-0.1, 0.1),
+                color: sketch.color(sketch.random([280, 320, 340]), 80, 90), // Pink/purple variations
+                pulse: sketch.random(0, sketch.TWO_PI)
+              })
+            }
+          }
+          
+          // Audio-reactive background
+          const energy = audioFeatures.energy || 0
+          const bass = audioFeatures.spectralCentroid || 0
+          
+          // Transparent background to show SVG watermark
+          sketch.clear()
+          
+          // Add subtle grid effect with transparency
+          sketch.stroke(280, 30, 20, 0.2)
+          sketch.strokeWeight(1)
+          const gridSize = 50 + energy * 20
+          for (let x = 0; x < sketch.width; x += gridSize) {
+            sketch.line(x, 0, x, sketch.height)
+          }
+          for (let y = 0; y < sketch.height; y += gridSize) {
+            sketch.line(0, y, sketch.width, y)
+          }
+          sketch.noStroke()
+          
+          // Update and draw hearts
+          const hearts = (sketch as any).heartsData.hearts
+          const gravity = (sketch as any).heartsData.gravity
+          const bounce = (sketch as any).heartsData.bounce
+          const friction = (sketch as any).heartsData.friction
+          const groundY = (sketch as any).heartsData.groundY
+          
+          hearts.forEach((heart: any) => {
+            // Apply physics
+            heart.vy += gravity
+            heart.x += heart.vx
+            heart.y += heart.vy
+            heart.rotation += heart.rotationSpeed
+            heart.pulse += 0.1
+            
+            // Ground collision
+            if (heart.y + heart.size > groundY) {
+              heart.y = groundY - heart.size
+              heart.vy *= -bounce
+              heart.vx *= friction
+            }
+            
+            // Wall collisions
+            if (heart.x - heart.size < 0) {
+              heart.x = heart.size
+              heart.vx *= -0.8
+            }
+            if (heart.x + heart.size > sketch.width) {
+              heart.x = sketch.width - heart.size
+              heart.vx *= -0.8
+            }
+            
+            // Audio reactivity
+            const pulseScale = 1 + Math.sin(heart.pulse) * 0.1
+            const audioScale = 1 + energy * 0.3
+            const finalSize = heart.size * pulseScale * audioScale
+            
+            // Draw heart
+            sketch.push()
+            sketch.translate(heart.x, heart.y)
+            sketch.rotate(heart.rotation)
+            sketch.scale(finalSize / 25)
+            
+            // Heart shape with audio-reactive colors
+            const heartHue = heart.color.levels[0] + energy * 10
+            const heartSat = 80 + energy * 20
+            const heartBright = 90 + energy * 10
+            sketch.fill(heartHue, heartSat, heartBright)
+            
+            // Draw heart shape using bezier curves
+            sketch.beginShape()
+            sketch.vertex(0, -8)
+            sketch.bezierVertex(-8, -8, -8, 4, 0, 8)
+            sketch.bezierVertex(8, 4, 8, -8, 0, -8)
+            sketch.endShape(sketch.CLOSE)
+            
+            // Add glow effect
+            sketch.drawingContext.shadowColor = sketch.color(heartHue, heartSat, heartBright)
+            sketch.drawingContext.shadowBlur = 10 + energy * 20
+            
+            sketch.pop()
+          })
+          
+          // Add floating particles
+          if (!(sketch as any).particlesData) {
+            (sketch as any).particlesData = []
+            for (let i = 0; i < 50; i++) {
+              (sketch as any).particlesData.push({
+                x: sketch.random(sketch.width),
+                y: sketch.random(sketch.height),
+                vx: sketch.random(-0.5, 0.5),
+                vy: sketch.random(-0.5, 0.5),
+                size: sketch.random(2, 6),
+                life: sketch.random(0, sketch.TWO_PI)
+              })
+            }
+          }
+          
+          // Update and draw particles
+          const particles = (sketch as any).particlesData
+          particles.forEach((particle: any) => {
+            particle.x += particle.vx
+            particle.y += particle.vy
+            particle.life += 0.02
+            
+            if (particle.x < 0) particle.x = sketch.width
+            if (particle.x > sketch.width) particle.x = 0
+            if (particle.y < 0) particle.y = sketch.height
+            if (particle.y > sketch.height) particle.y = 0
+            
+            const alpha = (Math.sin(particle.life) + 1) * 0.5
+            sketch.fill(280, 60, 80, alpha * 0.6)
+            sketch.circle(particle.x, particle.y, particle.size)
+          })
+          
+          // Display lyrics if available
+          if (lyrics && lyrics.length > 0) {
+            sketch.fill(280, 80, 90)
+            sketch.textAlign(sketch.CENTER, sketch.BOTTOM)
+            sketch.textSize(24)
+            sketch.text(lyrics[0], sketch.width / 2, sketch.height - 50)
+          }
+          
+          // Add beat-reactive effects
+          if (audioFeatures.beat) {
+            // Flash effect on beat
+            sketch.fill(280, 100, 100, 0.3)
+            sketch.rect(0, 0, sketch.width, sketch.height)
+          }
+        }
+
         // Handle window resize
         sketch.windowResized = () => {
           if (canvasRef.current) {
@@ -360,21 +709,23 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
   }, [])
 
   return (
-    <div className="relative w-full h-full bg-black">
-      {/* Canvas container */}
-      <div 
-        ref={canvasRef} 
-        className="w-full h-full"
-        style={{ 
-          background: 'radial-gradient(circle at center, #1a0033 0%, #0a0010 100%)'
-        }}
-      />
+    <div className="relative w-full h-full bg-transparent p-0 m-0 flex-1" style={{ minHeight: 0, minWidth: 0 }}>
+      {/* Canvas container for p5.js scenes */}
+        <div 
+          ref={canvasRef} 
+          className="w-full h-full p-0 m-0 flex-1"
+          style={{ 
+            background: 'transparent',
+            minHeight: 0,
+            minWidth: 0
+          }}
+        />
       
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="text-cyan-400 text-xl font-mono">
-            Loading Visualizer{loadingDots}
+            Loading Visualizer...
           </div>
         </div>
       )}
@@ -395,198 +746,45 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
       
       {/* Scene transition indicator */}
       {isPlaying && (
-        <div className="absolute bottom-4 left-4 bg-black/80 text-cyan-400 px-4 py-2 rounded font-mono text-sm">
-          Scene: {['Neon Grid', 'Vaporwave Orbs', 'Pool Party Waves', 'Cyber Rave'][currentScene % 4]}
+        <div className="absolute bottom-4 left-4 bg-black/80 text-cyan-400 px-4 py-2 rounded font-mono text-sm flex items-center gap-2">
+          {/* irlhotpersonhead SVG guide */}
+          <img
+            src="/assets/irlhotpersonhead.svg"
+            alt="lyrics guide"
+            className="w-4 h-4 opacity-80"
+            style={{
+              filter: 'drop-shadow(0 0 8px #36f9f6)',
+              animation: 'pulse 2s ease-in-out infinite'
+            }}
+          />
+          {/* Lyrics display */}
+          <span>
+            {currentLyrics && currentLyrics.length > 0 
+              ? currentLyrics.join(' • ')
+              : `Scene: ${[
+                'Cube Dance',       // 0
+                'Shader Spheres',   // 1
+                'Physics Hearts'    // 2
+              ][currentScene]}`
+            }
+          </span>
         </div>
       )}
+
+      {/* Small watermark in bottom right corner */}
+      <div className="absolute bottom-4 right-4 z-20 pointer-events-none select-none">
+        <img 
+          src="/assets/watermark3.svg" 
+          alt="watermark" 
+          className="w-16 h-16"
+          style={{
+            opacity: 0.3,
+            filter: 'drop-shadow(0 0 10px rgba(54, 249, 246, 0.3))'
+          }}
+        />
+      </div>
     </div>
   )
 }
 
 export default CanvasVisualizer
-
-// --- BEGIN: Visual Logic as String ---
-export const visualLogicCode = `// Audio-reactive Visuals (p5.js)
-// Real-time code execution for live audio analysis
-
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-  colorMode(HSB, 360, 100, 100, 1);
-  noStroke();
-}
-
-function draw() {
-  // Clear with gentle fade effect
-  fill(0, 0, 0, 0.05);
-  rect(0, 0, width, height);
-
-  // Get smoothed audio features from Tone.js analysis
-  const bass = smoothedAudioFeatures.energy || 0;
-  const treble = smoothedAudioFeatures.spectralCentroid || 0;
-  const volume = smoothedAudioFeatures.rms || 0;
-  const bpm = audioFeatures.bpm || 120;
-  const beat = shouldFlash; // Beat with cooldown
-
-  // Scene management - change every 90 seconds for stability
-  const sceneDuration = 90;
-  const energyThreshold = 0.5;
-  const shouldChangeScene = 
-    (currentTime - lastSceneChange > sceneDuration) || 
-    (bass > energyThreshold && currentTime - lastSceneChange > 45);
-  
-  if (shouldChangeScene && isPlaying) {
-    currentSceneIndex = (currentSceneIndex + 1) % 4;
-    lastSceneChange = currentTime;
-    sceneTransition = 0;
-  }
-  
-  // Smooth scene transition with proper timing
-  if (sceneTransition < 1) {
-    sceneTransition += 0.008; // slower transition for better effect
-  }
-  
-  // Render current scene based on audio analysis
-  switch (currentSceneIndex) {
-    case 0: renderNeonGrid(); break;
-    case 1: renderVaporwaveOrbs(); break;
-    case 2: renderPoolPartyWaves(); break;
-    case 3: renderCyberRave(); break;
-  }
-}
-
-function renderNeonGrid() {
-  // Stabilized neon grid pattern
-  const gridSize = 60 + bass * 50;
-  const neonIntensity = 0.2 + volume * 0.4;
-  
-  for (let x = 0; x < width; x += gridSize) {
-    for (let y = 0; y < height; y += gridSize) {
-      const hue = (200 + x * 0.05 + y * 0.05) % 360;
-      const alpha = neonIntensity * (0.3 + noise(x * 0.005, y * 0.005) * 0.4);
-      
-      if (beat) {
-        fill(hue, 80, 80, alpha * 1.2);
-        rect(x - 1, y - 1, gridSize + 2, gridSize + 2);
-      } else {
-        fill(hue, 60, 60, alpha);
-        rect(x, y, gridSize, gridSize);
-      }
-    }
-  }
-}
-
-function renderVaporwaveOrbs() {
-  // Stabilized vaporwave orbs
-  const orbCount = 3 + Math.floor(bass * 5);
-  
-  for (let i = 0; i < orbCount; i++) {
-    const x = width * (0.2 + i * 0.2);
-    const y = height * 0.5 + sin(frameCount * 0.01 + i) * 60;
-    const size = 40 + bass * 60 + (beat ? 10 : 0);
-    const hue = (270 + i * 30 + frameCount * 0.2) % 360;
-    
-    // Gentler orb glow effect
-    for (let j = 3; j > 0; j--) {
-      const glowSize = size + j * 15;
-      const alpha = (0.2 - j * 0.05) * (0.3 + volume);
-      fill(hue, 70, 70, alpha);
-      circle(x, y, glowSize);
-    }
-    
-    // Core orb
-    fill(hue, 80, 80, 0.6);
-    circle(x, y, size);
-  }
-}
-
-function renderPoolPartyWaves() {
-  // Stabilized pool party waves
-  const waveCount = 2;
-  const waveHeight = 30 + bass * 50;
-  
-  for (let i = 0; i < waveCount; i++) {
-    const hue = (50 + i * 20) % 360;
-    const y = height * 0.3 + i * 80;
-    
-    beginShape();
-    fill(hue, 80, 80, 0.3);
-    
-    for (let x = 0; x < width; x += 15) {
-      const waveY = y + sin(x * 0.005 + frameCount * 0.01 + i) * waveHeight;
-      vertex(x, waveY);
-    }
-    
-    vertex(width, height);
-    vertex(0, height);
-    endShape(CLOSE);
-  }
-  
-  // Fewer floating particles
-  const particleCount = Math.floor(10 + volume * 20);
-  for (let i = 0; i < particleCount; i++) {
-    const x = noise(i * 0.1, frameCount * 0.005) * width;
-    const y = noise(i * 0.1 + 100, frameCount * 0.005) * height * 0.6;
-    const size = 2 + volume * 5;
-    const hue = (50 + i * 10) % 360;
-    
-    fill(hue, 80, 80, 0.6);
-    circle(x, y, size);
-  }
-}
-
-function renderCyberRave() {
-  // Stabilized cyber rave laser beams
-  const beamCount = 6;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  
-  for (let i = 0; i < beamCount; i++) {
-    const angle = (i / beamCount) * PI * 2 + frameCount * 0.005;
-    const endX = centerX + cos(angle) * width;
-    const endY = centerY + sin(angle) * height;
-    const hue = (210 + i * 45) % 360;
-    const intensity = 0.2 + volume * 0.4;
-    
-    stroke(hue, 80, 80, intensity);
-    strokeWeight(2 + bass * 5);
-    line(centerX, centerY, endX, endY);
-  }
-  
-  noStroke();
-  
-  // Gentler central energy core
-  const coreSize = 40 + bass * 80;
-  const coreHue = (210 + frameCount * 1) % 360;
-  
-  for (let i = 3; i > 0; i--) {
-    const size = coreSize + i * 20;
-    const alpha = (0.3 - i * 0.08) * (0.3 + volume);
-    fill(coreHue, 80, 80, alpha);
-    circle(centerX, centerY, size);
-  }
-}
-
-// Audio analysis variables (from Tone.js)
-let audioFeatures = {
-  rms: 0,
-  energy: 0,
-  spectralCentroid: 0,
-  beat: false,
-  bpm: 120
-};
-
-// Smoothed audio features for stable visuals
-let smoothedAudioFeatures = {
-  rms: 0,
-  energy: 0,
-  spectralCentroid: 0
-};
-
-let currentTime = 0;
-let isPlaying = false;
-let currentSceneIndex = 0;
-let lastSceneChange = 0;
-let sceneTransition = 0;
-let shouldFlash = false;
-`;
-// --- END: Visual Logic as String --- 

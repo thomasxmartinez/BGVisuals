@@ -6,29 +6,11 @@ interface AudioControllerProps {
   onFeaturesUpdate: (features: AudioFeatures) => void
   onPlayStateChange: (isPlaying: boolean) => void
   onTimeUpdate: (time: number) => void
-  onDurationChange: (duration: number) => void
+  onDurationChange?: (duration: number) => void
   onAudioReady: (ready: boolean) => void
   onAudioContextReady?: (ready: boolean) => void
   small?: boolean
 }
-
-// Available audio files
-const AVAILABLE_AUDIO_FILES = [
-  {
-    name: 'Ballads 4 Baddies [No Tags].mp3',
-    path: '/audio/Ballads_4_Baddies_No_Tags.mp3',
-    size: '158 MB',
-    type: 'MP3',
-    description: 'Fast loading, compressed'
-  },
-  {
-    name: 'Ballads 4 Baddies [No Tags].wav',
-    path: '/audio/Ballads_4_Baddies_No_Tags.wav',
-    size: '1.4 GB',
-    type: 'WAV',
-    description: 'Original quality, slower loading'
-  }
-]
 
 const AudioController: React.FC<AudioControllerProps> = ({
   onFeaturesUpdate,
@@ -39,6 +21,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
   onAudioContextReady,
   small = false
 }) => {
+  const [audioFiles, setAudioFiles] = useState<Array<{ name: string, path: string, size?: string, type?: string }>>([])
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string>('')
@@ -50,6 +33,33 @@ const AudioController: React.FC<AudioControllerProps> = ({
   const startTimeRef = useRef<number>(0)
   const animationFrameRef = useRef<number | null>(null)
   const isDisposed = useRef(false)
+
+  // On mount, fetch audio files from /audio/ directory
+  useEffect(() => {
+    // Use a static list of files in public/audio/
+    setAudioFiles([
+      {
+        name: 'Ballads_4_Baddies_Final.mp3',
+        path: '/audio/Ballads_4_Baddies_Final.mp3',
+        type: 'MP3',
+      },
+      {
+        name: 'Ballads_4_Baddies.mp3',
+        path: '/audio/Ballads_4_Baddies.mp3',
+        type: 'MP3',
+      },
+      {
+        name: 'Ballads_4_Baddies_No_Tags.mp3',
+        path: '/audio/Ballads_4_Baddies_No_Tags.mp3',
+        type: 'MP3',
+      },
+      {
+        name: 'Ballads_4_Baddies_No_Tags.wav',
+        path: '/audio/Ballads_4_Baddies_No_Tags.wav',
+        type: 'WAV',
+      },
+    ])
+  }, [])
 
   // Cleanup function
   const cleanup = () => {
@@ -89,14 +99,13 @@ const AudioController: React.FC<AudioControllerProps> = ({
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedPath = event.target.value
-    if (selectedPath) {
-      setSelectedFile(selectedPath)
-      const audioFile = AVAILABLE_AUDIO_FILES.find(file => file.path === selectedPath)
-      setFileName(audioFile?.name || selectedPath)
-      setIsLoading(true)
-      onAudioReady(false)
-      loadAudioFile(selectedPath)
-    }
+    if (typeof selectedPath !== 'string' || !selectedPath) return;
+    setSelectedFile(selectedPath)
+    const audioFile = audioFiles.find(file => file.path && file.path === selectedPath)
+    setFileName(audioFile?.name || selectedPath)
+    setIsLoading(true)
+    onAudioReady(false)
+    loadAudioFile(selectedPath)
   }
 
   // Load audio file
@@ -111,7 +120,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
         autostart: false,
         onload: () => {
           if (player.buffer) {
-            onDurationChange(player.buffer.duration)
+            onDurationChange?.(player.buffer.duration)
           }
           setIsLoading(false)
           onAudioReady(true)
@@ -176,7 +185,8 @@ const AudioController: React.FC<AudioControllerProps> = ({
               energy: audioFeatures.energy.toFixed(4),
               bpm: audioFeatures.bpm.toFixed(1),
               beat: audioFeatures.beat,
-              playerState: playerRef.current?.state
+              playerState: playerRef.current?.state,
+              time: ((Date.now() - startTimeRef.current) / 1000).toFixed(1)
             })
           }
 
@@ -205,6 +215,12 @@ const AudioController: React.FC<AudioControllerProps> = ({
   const togglePlayback = async () => {
     if (!playerRef.current || !isInitialized || !selectedFile) return
 
+    // Prevent playback if buffer is not loaded
+    if (!playerRef.current.buffer || !playerRef.current.buffer.loaded) {
+      setInitError('Audio is still loading. Please wait a moment and try again.')
+      return
+    }
+
     try {
       if (playerRef.current.state === 'started') {
         await playerRef.current.stop()
@@ -213,11 +229,9 @@ const AudioController: React.FC<AudioControllerProps> = ({
         startTimeRef.current = Date.now()
         await playerRef.current.start()
         onPlayStateChange(true)
-        
         // Track time
         const updateTime = () => {
           if (isDisposed.current) return
-          
           if (playerRef.current?.state === 'started') {
             const elapsed = (Date.now() - startTimeRef.current) / 1000
             onTimeUpdate(elapsed)
@@ -229,6 +243,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
         updateTime()
       }
     } catch (error) {
+      setInitError('Playback error: ' + (error instanceof Error ? error.message : String(error)))
       console.error('Playback error:', error)
     }
   }
@@ -266,9 +281,9 @@ const AudioController: React.FC<AudioControllerProps> = ({
           }}
         >
           <option value="" className="text-gray-400 bg-black/80">🎵 -- Choose an audio file --</option>
-          {AVAILABLE_AUDIO_FILES.map((file) => (
-            <option key={file.path} value={file.path} className="bg-black/90 text-cyan-300 hover:bg-pink-900">
-              {file.name} ({file.size}, {file.type}) - {file.description}
+          {audioFiles.map((file) => (
+            <option key={file.path || ''} value={file.path || ''} className="bg-black/90 text-cyan-300 hover:bg-pink-900">
+              {file.name} {file.type ? `(${file.type})` : ''}
             </option>
           ))}
         </select>
@@ -281,7 +296,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
       {isInitialized && isLoading && (
         <div className="flex flex-col items-center justify-center mt-2 mb-2">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-pink-400 mb-2" />
-          <div className="text-cyan-300 font-mono text-sm">Loading audio file...</div>
+          <div className="text-cyan-300 font-mono text-sm">Loading audio file, please wait...</div>
         </div>
       )}
 
@@ -289,7 +304,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
       <div className="flex justify-center mt-1">
         <button
           onClick={togglePlayback}
-          disabled={!isInitialized || isLoading || !selectedFile}
+          disabled={!isInitialized || isLoading || !selectedFile || !playerRef.current || !playerRef.current.buffer || !playerRef.current.buffer.loaded}
           className={`rounded-full bg-gradient-to-r from-pink-500 via-cyan-400 to-purple-600 text-black font-extrabold graffiti-font shadow-lg neon-glow border-2 border-pink-400/60 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${small ? 'px-4 py-1 text-base' : 'px-8 py-3 text-xl'} ${small ? 'hover:scale-100' : 'hover:scale-105 hover:from-pink-400 hover:to-cyan-300'}`}
         >
           {isLoading ? '⏳' : playerRef.current?.state === 'started' ? '⏸️ Pause' : '▶️ Play'}
