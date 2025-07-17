@@ -96,6 +96,37 @@
     background: transparent !important;
   }
 
+  /* Synthwave code editor with transparent background */
+  .synthwave-code-editor .monaco-editor {
+    background: transparent !important;
+  }
+
+  .synthwave-code-editor .monaco-editor .monaco-editor-background {
+    background: transparent !important;
+  }
+
+  /* Force the editor to show our background */
+  .monaco-editor .monaco-editor-background,
+  .monaco-editor .margin,
+  .monaco-editor .monaco-editor-background {
+    background: transparent !important;
+  }
+
+  /* Override any other background styles */
+  .monaco-editor {
+    background: transparent !important;
+  }
+
+  /* Make sure the container shows our background */
+  .synthwave-code-editor {
+    background: transparent !important;
+  }
+
+  /* Force watermark transparency */
+  .watermark-transparent {
+    opacity: 0.15 !important;
+  }
+
   .current-line-highlight {
     box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
   }
@@ -197,6 +228,17 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
   }
 }
 
