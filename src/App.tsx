@@ -4,6 +4,7 @@ import CodePanel from './components/CodePanel'
 import AudioController from './components/AudioController'
 import BeatDetector from './components/BeatDetector'
 import LyricsDetector from './components/LyricsDetector'
+
 import { AudioFeatures } from './types/audio'
 import './index.css'
 
@@ -26,12 +27,16 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0)
   const [currentScene, setCurrentScene] = useState(0)
   const [sceneTransition, setSceneTransition] = useState(false)
-  const sceneCount = 3 // Updated to use 3 new scenes
+  const sceneCount = 1 // Only Cube Dance
   const transitionDuration = 1 // seconds - faster transitions
   const lastSceneChangeRef = useRef(Date.now())
   const [isAudioReady, setIsAudioReady] = useState(false)
   const timeIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [currentLyrics, setCurrentLyrics] = useState<string[]>([])
+  
+  // Custom cursor state
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [isMouseVisible, setIsMouseVisible] = useState(true)
 
   // Remove sceneMap - we'll use all scenes sequentially
 
@@ -65,16 +70,7 @@ function App() {
     if (!isPlaying) return
     
     const sceneInterval = setInterval(() => {
-      setCurrentScene(prev => {
-        const nextScene = (prev + 1) % sceneCount
-        console.log(`Time-based scene transition: ${prev} -> ${nextScene}`)
-        return nextScene
-      })
-      setSceneTransition(true)
-      setTimeout(() => {
-        setSceneTransition(false)
-        lastSceneChangeRef.current = Date.now()
-      }, transitionDuration * 1000)
+      // Only one scene, do nothing
     }, 30000) // Change scene every 30 seconds - much longer to see code typing
     
     return () => {
@@ -127,39 +123,38 @@ function App() {
   // Manual scene cycling with keyboard
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight' || event.key === ' ') {
-        event.preventDefault()
-        setSceneTransition(true)
-        setTimeout(() => {
-          setCurrentScene(prev => (prev + 1) % sceneCount)
-          setSceneTransition(false)
-          lastSceneChangeRef.current = Date.now()
-        }, transitionDuration * 1000)
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault()
-        setSceneTransition(true)
-        setTimeout(() => {
-          setCurrentScene(prev => (prev - 1 + sceneCount) % sceneCount)
-          setSceneTransition(false)
-          lastSceneChangeRef.current = Date.now()
-        }, transitionDuration * 1000)
-      } else if (event.key >= '0' && event.key <= '9') {
-        event.preventDefault()
-        const sceneNumber = parseInt(event.key)
-        if (sceneNumber < sceneCount) {
-          setSceneTransition(true)
-          setTimeout(() => {
-            setCurrentScene(sceneNumber)
-            setSceneTransition(false)
-            lastSceneChangeRef.current = Date.now()
-          }, transitionDuration * 1000)
-        }
-      }
+      // Only one scene, ignore scene switching keys
     }
     
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [sceneCount])
+
+  // Custom cursor effect
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      setMousePosition({ x: event.clientX, y: event.clientY })
+      setIsMouseVisible(true)
+    }
+
+    const handleMouseLeave = () => {
+      setIsMouseVisible(false)
+    }
+
+    const handleMouseEnter = () => {
+      setIsMouseVisible(true)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseleave', handleMouseLeave)
+    document.addEventListener('mouseenter', handleMouseEnter)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseleave', handleMouseLeave)
+      document.removeEventListener('mouseenter', handleMouseEnter)
+    }
+  }, [])
 
 
   // Cleanup on unmount
@@ -193,10 +188,11 @@ function App() {
               isPlaying={isPlaying}
               currentTime={currentTime}
               isAudioReady={isAudioReady}
-              currentScene={currentScene}
-              sceneMap={[]} // No longer needed
+              currentScene={0}
               currentLyrics={currentLyrics}
             />
+            
+            {/* Three.js Components are now handled inside CanvasVisualizer */}
           </div>
         </div>
       </div>
@@ -227,39 +223,15 @@ function App() {
       {/* Scene Transition Indicator */}
               {sceneTransition && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-purple-600/80 text-white px-4 py-2 rounded-lg font-mono text-sm animate-pulse">
-            Scene Transition: {currentScene + 1}/{sceneCount}
+            Scene Transition: 1/1
           </div>
         )}
       
       {/* Manual Scene Controls */}
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
-        <button
-          onClick={() => {
-            setSceneTransition(true)
-            setTimeout(() => {
-              setCurrentScene(prev => (prev - 1 + sceneCount) % sceneCount)
-              setSceneTransition(false)
-            }, transitionDuration * 1000)
-          }}
-          className="bg-purple-600/80 text-white px-3 py-1 rounded font-mono text-sm hover:bg-purple-500/80"
-        >
-          ← Prev
-        </button>
-                  <div className="bg-purple-600/80 text-white px-3 py-1 rounded font-mono text-sm">
-            {currentScene + 1}/{sceneCount}
-          </div>
-        <button
-          onClick={() => {
-            setSceneTransition(true)
-            setTimeout(() => {
-              setCurrentScene(prev => (prev + 1) % sceneCount)
-              setSceneTransition(false)
-            }, transitionDuration * 1000)
-          }}
-          className="bg-purple-600/80 text-white px-3 py-1 rounded font-mono text-sm hover:bg-purple-500/80"
-        >
-          Next →
-        </button>
+        <div className="bg-purple-600/80 text-white px-3 py-1 rounded font-mono text-sm">
+          1/1
+        </div>
       </div>
       
       {/* Lyrics System */}
@@ -277,6 +249,28 @@ function App() {
             AUDIO NOT PLAYING<br />
             Please click Play to start the visualizer
           </div>
+        </div>
+      )}
+      
+      {/* Custom Cursor with SVG Head */}
+      {isMouseVisible && (
+        <div 
+          className="fixed pointer-events-none z-[9999] transition-transform duration-75 ease-out"
+          style={{
+            left: mousePosition.x - 16,
+            top: mousePosition.y - 16,
+            transform: 'translate(-50%, -50%)'
+          }}
+        >
+          <img
+            src="/assets/irlhotpersonhead.svg"
+            alt="cursor"
+            className="w-8 h-8 drop-shadow-lg"
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 0, 255, 0.4))',
+              animation: isPlaying ? 'pulse 2s ease-in-out infinite' : 'none'
+            }}
+          />
         </div>
       )}
     </div>

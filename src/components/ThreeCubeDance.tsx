@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 // @ts-ignore
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { AudioFeatures } from '../types/audio';
 
 interface ThreeCubeDanceProps {
-  audioFeatures: any;
+  audioFeatures: AudioFeatures;
   isPlaying: boolean;
   currentTime: number;
 }
@@ -318,18 +319,19 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-      const controlsRef = useRef<any>(null);
-    const oddsRef = useRef<THREE.Mesh[]>([]);
-    const evensRef = useRef<THREE.Mesh[]>([]);
-    const animationRef = useRef<number | null>(null);
-    const isInitializedRef = useRef(false);
-    const mouseRef = useRef({ x: 0, y: 0 });
-    const raycasterRef = useRef(new THREE.Raycaster());
-    const mouseRef2 = useRef(new THREE.Vector2());
-    const isUserInteractingRef = useRef(false);
+  const controlsRef = useRef<any>(null);
+  const oddsRef = useRef<THREE.Mesh[]>([]);
+  const evensRef = useRef<THREE.Mesh[]>([]);
+  const animationRef = useRef<number | null>(null);
+  const isInitializedRef = useRef(false);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const raycasterRef = useRef(new THREE.Raycaster());
+  const mouseRef2 = useRef(new THREE.Vector2());
+  const isUserInteractingRef = useRef(false);
   
   // Store audio features for reactivity
   const latestAudioFeatures = useRef(audioFeatures);
+
   useEffect(() => {
     latestAudioFeatures.current = audioFeatures;
   }, [audioFeatures]);
@@ -416,7 +418,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
     // Load irlhotpersonhead texture
     const textureLoader = new THREE.TextureLoader();
     console.log('🎯 Loading irlhotpersonhead.svg texture...');
-    
+
     // Create a canvas to convert SVG to texture
     const createHeadTexture = () => {
       return new Promise<THREE.Texture>((resolve) => {
@@ -458,7 +460,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           if (cube.userData.isHeadCube) {
             // Update existing head cubes with the loaded texture
             const specialMaterial = new THREE.MeshPhongMaterial({
-              color: '#FF1493', // Neon pink
+              color: cube.userData.isRedCube ? '#FF4444' : '#4444FF', // Red or blue
               map: headTexture, // Apply the head texture
               transparent: true,
               opacity: 1.0,
@@ -508,19 +510,19 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
         position.needsUpdate = true;
         roundedGeometry.computeVertexNormals();
         
-        // Determine if this cube should be a head cube (50% of cubes)
-        const isHeadCube = (i + j) % 2 === 0;
+        // All cubes will be head cubes with SVG texture, alternating colors
+        const isRedCube = (i + j) % 2 === 0;
         
-        if (isHeadCube) {
+        if (isRedCube) {
           headCubeCount++;
         }
         
         let box: THREE.Mesh;
         
-        if (isHeadCube && headTexture) {
-          // Create special material with head texture as stamp
+        if (headTexture) {
+          // Create material with head texture for all cubes
           const specialMaterial = new THREE.MeshPhongMaterial({
-            color: '#FF1493', // Neon pink
+            color: isRedCube ? '#FF4444' : '#4444FF', // Red or blue
             map: headTexture, // Apply the head texture
             transparent: true,
             opacity: 1.0,
@@ -531,13 +533,15 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           });
           box = new THREE.Mesh(roundedGeometry, specialMaterial);
           box.userData.isHeadCube = true;
+          box.userData.isRedCube = isRedCube;
         } else {
-          // Regular cube with original material (or fallback for head cubes if texture not loaded)
-          const material = isHeadCube ? 
-            new THREE.MeshPhongMaterial({ color: '#FF1493' }) : // Neon pink for head cubes without texture
-            new THREE.MeshPhongMaterial({ color: '#00BFFF' }); // Neon blue for regular cubes
+          // Fallback material if texture not loaded
+          const material = new THREE.MeshPhongMaterial({ 
+            color: isRedCube ? '#FF4444' : '#4444FF' // Red or blue
+          });
           box = new THREE.Mesh(roundedGeometry, material);
-          box.userData.isHeadCube = isHeadCube;
+          box.userData.isHeadCube = true;
+          box.userData.isRedCube = isRedCube;
         }
         box.position.set(
           (i * boxSize) + gridSize * -0.5,
@@ -548,7 +552,8 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
         box.receiveShadow = true;
         // Add user data for interaction
         box.userData = { 
-          isHeadCube, 
+          isHeadCube: true, 
+          isRedCube,
           originalY: 0,
           index: i * gridSize + j,
           originalScale: 1.0
@@ -561,7 +566,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
         scene.add(box);
       }
     }
-    console.log(`🎲 Created ${gridSize * gridSize} cubes (${evensRef.current.length} evens, ${oddsRef.current.length} odds, ${headCubeCount} head cubes)`);
+    console.log(`🎲 Created ${gridSize * gridSize} cubes (${evensRef.current.length} evens, ${oddsRef.current.length} odds, all with SVG head texture)`);
 
     // Start animations
     animateOdds();
@@ -582,7 +587,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
       if (controlsRef.current) {
         controlsRef.current.update();
       }
-      
+
       // Audio reactivity
       const audioFeatures = latestAudioFeatures.current;
       const energy = audioFeatures?.energy || 0;
@@ -598,8 +603,8 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           camera.position.z = cameraDistance;
         }
         
-        // More visible camera rotation on beat
-        if (beat) {
+        // More visible camera rotation on beat - but only if not interacting
+        if (beat && !isUserInteractingRef.current) {
           camera.rotation.y += 0.02; // More noticeable rotation
         }
         
@@ -613,7 +618,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           light1.intensity = 2;
           light2.intensity = 2;
         }
-        
+
         // More visible cube reactivity to music
         const allCubes = [...oddsRef.current, ...evensRef.current];
         allCubes.forEach((cube, index) => {
@@ -634,14 +639,22 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
               const pulseScale = baseScale * 1.4 + volume * 0.5;
               cube.scale.setScalar(pulseScale);
               
-              // Enhanced glow on beat
+              // Enhanced glow on beat - use color-specific emissive
               (cube.material as THREE.MeshPhongMaterial).emissiveIntensity = 0.6;
-              (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0x4a90e2);
+              if (cube.userData.isRedCube) {
+                (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0xff4444);
+              } else {
+                (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0x4444ff);
+              }
             } else {
               // Normal state for head cubes
               cube.rotation.y += 0.02; // Gentle continuous rotation
               (cube.material as THREE.MeshPhongMaterial).emissiveIntensity = 0.2;
-              (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0x4a90e2);
+              if (cube.userData.isRedCube) {
+                (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0xff4444);
+              } else {
+                (cube.material as THREE.MeshPhongMaterial).emissive.setHex(0x4444ff);
+              }
             }
             
             // Add subtle floating motion for head cubes
@@ -656,11 +669,12 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           }
         });
       }
-      
+
       renderer.render(scene, camera);
     };
+
     animate();
-    
+
     console.log('✅ ThreeCubeDance initialized successfully');
   }, []);
 
@@ -768,10 +782,21 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
       
       mouseRef2.current.x = mouseRef.current.x;
       mouseRef2.current.y = mouseRef.current.y;
+      
+      // Set user interaction flag
+      isUserInteractingRef.current = true;
+      
+      // Reset interaction flag after a delay
+      setTimeout(() => {
+        isUserInteractingRef.current = false;
+      }, 2000);
     };
 
     const handleClick = (event: MouseEvent) => {
       if (!mountRef.current || !sceneRef.current || !cameraRef.current) return;
+      
+      // Set user interaction flag
+      isUserInteractingRef.current = true;
       
       const rect = mountRef.current.getBoundingClientRect();
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -794,7 +819,8 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
             ease: "power2.inOut"
           });
           const originalEmissive = (clickedCube.material as THREE.MeshPhongMaterial).emissive.clone();
-          (clickedCube.material as THREE.MeshPhongMaterial).emissive.setHex(0xffe066);
+          // Use white glow for click effect
+          (clickedCube.material as THREE.MeshPhongMaterial).emissive.setHex(0xffffff);
           (clickedCube.material as THREE.MeshPhongMaterial).emissiveIntensity = 1.2;
           setTimeout(() => {
             (clickedCube.material as THREE.MeshPhongMaterial).emissive.copy(originalEmissive);
@@ -817,6 +843,11 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
           }, 1000);
         }
       }
+      
+      // Reset interaction flag after a delay
+      setTimeout(() => {
+        isUserInteractingRef.current = false;
+      }, 3000);
     };
 
     if (mountRef.current) {
@@ -832,7 +863,7 @@ const ThreeCubeDance: React.FC<ThreeCubeDanceProps> = ({ audioFeatures, isPlayin
     };
   }, []);
 
-  return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
+  return <div ref={mountRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />;
 };
 
 export default ThreeCubeDance; 

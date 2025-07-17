@@ -61,11 +61,23 @@
 @layer base {
   html {
     font-family: 'JetBrains Mono', monospace;
+    cursor: none; /* Hide default cursor */
   }
   
   body {
     @apply bg-black text-white;
     overflow: hidden;
+    cursor: none; /* Hide default cursor */
+  }
+  
+  /* Hide cursor on all interactive elements */
+  * {
+    cursor: none !important;
+  }
+  
+  /* Show default cursor only on form elements for accessibility */
+  input, textarea, select, button, [role="button"], [tabindex] {
+    cursor: auto !important;
   }
 }
 

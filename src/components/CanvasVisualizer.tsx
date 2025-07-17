@@ -206,25 +206,13 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
             ;(sketch as any).lastLoggedScene = sceneIndex
           }
           
-          // Array of all available render functions
-          const renderFunctions = [
-            renderCubeDance,
-            renderScene2,
-            renderScene3
-          ]
+          // Two scenes: Cube Dance (0), Heart Packing (1)
+          const actualSceneIndex = sceneIndex % 2
           
-          // Use sceneIndex directly (no more sceneMap)
-          const actualSceneIndex = sceneIndex % renderFunctions.length
-          const renderFunction = renderFunctions[actualSceneIndex]
-          
-          // Call the render function with appropriate parameters
-          if (renderFunction) {
-            // Always pass lyrics - functions that don't need it will ignore it
-            renderFunction(sketch, audioFeatures, _isPlaying, _transition, lyrics)
-          } else {
-            // Fallback to first scene if function not found
-            console.log('No render function found, using fallback')
+          if (actualSceneIndex === 0) {
             renderCubeDance(sketch, audioFeatures, _isPlaying, _transition, lyrics)
+          } else {
+            renderHeartPacking(sketch, audioFeatures, _isPlaying, _transition, lyrics)
           }
         }
         
@@ -251,314 +239,34 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
           // This p5.js function is just a placeholder
         }
         
-        // Scene 1: Shader Spheres (Three.js inspired by https://codepen.io/r21nomi/pen/LJmzbB)
-        const renderScene2 = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
-          const bass = audioFeatures.energy || 0
+        // Scene 1: Heart Packing - Three.js version
+        const renderHeartPacking = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
+          const energy = audioFeatures.energy || 0
           const volume = audioFeatures.rms || 0
           const beat = audioFeatures.beat
           
-          // Transparent background to show SVG watermark
+          console.log('Three.js Heart Packing rendering, energy:', energy, 'volume:', volume)
+          
+          // Clear the p5.js canvas and show a placeholder
           sketch.clear()
           
-          // Create subtle gradient overlay
-          for (let y = 0; y < sketch.height; y++) {
-            const inter = sketch.map(y, 0, sketch.height, 0, 1)
-            const c = sketch.lerpColor(sketch.color(0, 51, 77, 0.1), sketch.color(0, 0, 0, 0.05), inter)
-            sketch.stroke(c)
-            sketch.line(0, y, sketch.width, y)
-          }
+          // Show a message that Three.js is being used
+          sketch.fill(255, 255, 255, 0.8)
+          sketch.textAlign(sketch.CENTER, sketch.CENTER)
+          sketch.textSize(24)
+          sketch.text('Three.js Heart Packing Scene', sketch.width / 2, sketch.height / 2)
+          sketch.text(`Energy: ${energy.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 40)
+          sketch.text(`Volume: ${volume.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 70)
           
-          // Audio-reactive parameters
-          const time = sketch.frameCount * 0.02
-          const audioTime = time * (1 + volume * 0.5)
-          const sphereCount = 24 + Math.floor(bass * 20)
-          const sphereSize = 15 + volume * 20 + (beat ? 10 : 0)
-          
-          // Synthwave colors
-          const baseColor = sketch.color(0, 51, 77) // Dark cyan
-          const accentColor = sketch.color(67, 250, 142) // Synthwave green
-          const glowColor = sketch.color(255, 126, 219) // Pink
-          
-          // Draw animated spheres in circular patterns
-          const centerX = sketch.width / 2
-          const centerY = sketch.height / 2
-          
-          // Multiple rings of spheres
-          const rings = [3, 2, 1.5] // Ring multipliers
-          
-          rings.forEach((ringMultiplier, ringIndex) => {
-            const radius = 100 * ringMultiplier + bass * 50
-            const ringSphereCount = sphereCount + ringIndex * 8
-            
-            for (let i = 0; i < ringSphereCount; i++) {
-              const angle = (sketch.TWO_PI * i) / ringSphereCount + audioTime * 0.5
-            const x = centerX + sketch.cos(angle) * radius
-            const y = centerY + sketch.sin(angle) * radius
-              
-              // Audio-reactive sphere properties
-              const size = sphereSize * (1 + sketch.sin(audioTime * 2 + i * 0.5) * 0.3)
-              const rotation = audioTime * 4 + i * 0.2
-              
-              // Shader-like effect using p5.js
-              sketch.push()
-              sketch.translate(x, y)
-              sketch.rotate(rotation)
-              
-              // Create shader-like glow effect
-              const glowLayers = 8
-              for (let layer = glowLayers; layer > 0; layer--) {
-                const layerSize = size + layer * 8
-                const alpha = (0.3 - layer * 0.03) * (0.5 + volume)
-                
-                // Color variation based on position and audio
-                const hue = (180 + i * 15 + audioTime * 50) % 360
-                const saturation = 80 + volume * 20
-                const brightness = 60 + volume * 40
-                
-                sketch.fill(hue, saturation, brightness, alpha)
-                sketch.noStroke()
-                sketch.circle(0, 0, layerSize)
-              }
-              
-              // Core sphere
-              const coreHue = (200 + ringIndex * 30 + audioTime * 30) % 360
-              sketch.fill(coreHue, 90, 90, 0.9)
-              sketch.circle(0, 0, size)
-              
-              // Inner highlight
-              sketch.fill(coreHue, 50, 100, 0.8)
-              sketch.circle(0, 0, size * 0.6)
-              
-            sketch.pop()
-          }
-          })
-          
-          // Draw animated grid walls (shader-like effect)
-          const gridSize = 40 + Math.floor(bass * 20)
-          const cols = Math.floor(sketch.width / gridSize) + 2
-          const rows = Math.floor(sketch.height / gridSize) + 2
-          
-          for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-              const x = j * gridSize
-              const y = i * gridSize
-              
-              // Shader-like brightness calculation
-              let brightness = 0
-              const speed = audioTime * 1.5
-              
-              for (let k = 0; k < 8; k++) {
-                const uvX = (x / sketch.width) * 8
-                const uvY = (y / sketch.height) * 8
-                brightness += 0.1 / sketch.abs(sketch.sin(sketch.PI * uvX) * sketch.sin(sketch.PI * uvY) * sketch.sin(sketch.PI * speed + k))
-              }
-              
-              // Audio-reactive grid
-              const gridHue = (200 + (i + j) * 5 + audioTime * 20) % 360
-              const alpha = brightness * (0.1 + volume * 0.3) * (beat ? 2 : 1)
-              
-              sketch.fill(gridHue, 80, 80, alpha)
-              sketch.noStroke()
-              sketch.rect(x, y, gridSize, gridSize)
-            }
-          }
-          
-          // Add floating energy particles
-          const particleCount = 30 + Math.floor(volume * 40)
-          for (let i = 0; i < particleCount; i++) {
-            const x = (Math.sin(i * 0.1 + audioTime * 0.5) * 0.5 + 0.5) * sketch.width
-            const y = (Math.sin(i * 0.1 + 100 + audioTime * 0.5) * 0.5 + 0.5) * sketch.height
-            const size = 2 + volume * 8 + (beat ? 4 : 0)
-            const hue = (180 + i * 12 + audioTime * 40) % 360
-            
-            // Particle glow
-            for (let j = 4; j > 0; j--) {
-              const glowSize = size + j * 6
-              const alpha = (0.4 - j * 0.08) * (0.3 + volume)
-            sketch.fill(hue, 80, 80, alpha)
-              sketch.noStroke()
-              sketch.circle(x, y, glowSize)
-            }
-            
-            // Core particle
-            sketch.fill(hue, 90, 90, 0.9)
-            sketch.circle(x, y, size)
-          }
-          
-          // Display lyrics if available
-          if (lyrics.length > 0) {
-            sketch.push()
-            sketch.textAlign(sketch.CENTER, sketch.CENTER)
-            sketch.textSize(24 + volume * 8)
-            sketch.fill(accentColor)
-            sketch.stroke(0)
-            sketch.strokeWeight(2)
-            
-            const currentLyric = lyrics[Math.floor(audioTime * 0.5) % lyrics.length]
-            if (currentLyric) {
-              sketch.text(currentLyric, sketch.width / 2, sketch.height * 0.9)
-            }
-            sketch.pop()
-          }
+          // Note: The actual Three.js rendering will be handled by the HeartPacking component
+          // This p5.js function is just a placeholder
         }
+        
 
-        // Scene 3: Physics-based hearts animation inspired by "Pile of Hearts"
-        const renderScene3 = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
-          // Initialize physics variables on first call
-          if (!(sketch as any).heartsData) {
-            (sketch as any).heartsData = {
-              hearts: [],
-              gravity: 0.3,
-              bounce: 0.7,
-              friction: 0.98,
-              groundY: sketch.height * 0.8
-            }
-            
-            // Create hearts
-            for (let i = 0; i < 25; i++) {
-              (sketch as any).heartsData.hearts.push({
-                            x: -50 + Math.random() * (sketch.width + 100),
-            y: -200 + Math.random() * 150,
-            vx: -2 + Math.random() * 4,
-            vy: -1 + Math.random() * 2,
-            size: 15 + Math.random() * 20,
-            rotation: Math.random() * sketch.TWO_PI,
-            rotationSpeed: -0.1 + Math.random() * 0.2,
-            color: sketch.color([280, 320, 340][Math.floor(Math.random() * 3)], 80, 90), // Pink/purple variations
-            pulse: Math.random() * sketch.TWO_PI
-              })
-            }
-          }
-          
-          // Audio-reactive background
-          const energy = audioFeatures.energy || 0
-          const bass = audioFeatures.spectralCentroid || 0
-          
-          // Transparent background to show SVG watermark
-          sketch.clear()
-          
-          // Add subtle grid effect with transparency
-          sketch.stroke(280, 30, 20, 0.2)
-          sketch.strokeWeight(1)
-          const gridSize = 50 + energy * 20
-          for (let x = 0; x < sketch.width; x += gridSize) {
-            sketch.line(x, 0, x, sketch.height)
-          }
-          for (let y = 0; y < sketch.height; y += gridSize) {
-            sketch.line(0, y, sketch.width, y)
-          }
-          sketch.noStroke()
-          
-          // Update and draw hearts
-          const hearts = (sketch as any).heartsData.hearts
-          const gravity = (sketch as any).heartsData.gravity
-          const bounce = (sketch as any).heartsData.bounce
-          const friction = (sketch as any).heartsData.friction
-          const groundY = (sketch as any).heartsData.groundY
-          
-          hearts.forEach((heart: any) => {
-            // Apply physics
-            heart.vy += gravity
-            heart.x += heart.vx
-            heart.y += heart.vy
-            heart.rotation += heart.rotationSpeed
-            heart.pulse += 0.1
-            
-            // Ground collision
-            if (heart.y + heart.size > groundY) {
-              heart.y = groundY - heart.size
-              heart.vy *= -bounce
-              heart.vx *= friction
-            }
-            
-            // Wall collisions
-            if (heart.x - heart.size < 0) {
-              heart.x = heart.size
-              heart.vx *= -0.8
-            }
-            if (heart.x + heart.size > sketch.width) {
-              heart.x = sketch.width - heart.size
-              heart.vx *= -0.8
-            }
-            
-            // Audio reactivity
-            const pulseScale = 1 + Math.sin(heart.pulse) * 0.1
-            const audioScale = 1 + energy * 0.3
-            const finalSize = heart.size * pulseScale * audioScale
-            
-            // Draw heart
-            sketch.push()
-            sketch.translate(heart.x, heart.y)
-            sketch.rotate(heart.rotation)
-            sketch.scale(finalSize / 25)
-            
-            // Heart shape with audio-reactive colors
-            const heartHue = heart.color.levels[0] + energy * 10
-            const heartSat = 80 + energy * 20
-            const heartBright = 90 + energy * 10
-            sketch.fill(heartHue, heartSat, heartBright)
-            
-            // Draw heart shape using bezier curves
-            sketch.beginShape()
-            sketch.vertex(0, -8)
-            sketch.bezierVertex(-8, -8, -8, 4, 0, 8)
-            sketch.bezierVertex(8, 4, 8, -8, 0, -8)
-            sketch.endShape(sketch.CLOSE)
-            
-            // Add glow effect
-            sketch.drawingContext.shadowColor = sketch.color(heartHue, heartSat, heartBright)
-            sketch.drawingContext.shadowBlur = 10 + energy * 20
-            
-            sketch.pop()
-          })
-          
-          // Add floating particles
-          if (!(sketch as any).particlesData) {
-            (sketch as any).particlesData = []
-            for (let i = 0; i < 50; i++) {
-              (sketch as any).particlesData.push({
-                            x: Math.random() * sketch.width,
-            y: Math.random() * sketch.height,
-            vx: -0.5 + Math.random(),
-            vy: -0.5 + Math.random(),
-            size: 2 + Math.random() * 4,
-            life: Math.random() * sketch.TWO_PI
-              })
-            }
-          }
-          
-          // Update and draw particles
-          const particles = (sketch as any).particlesData
-          particles.forEach((particle: any) => {
-            particle.x += particle.vx
-            particle.y += particle.vy
-            particle.life += 0.02
-            
-            if (particle.x < 0) particle.x = sketch.width
-            if (particle.x > sketch.width) particle.x = 0
-            if (particle.y < 0) particle.y = sketch.height
-            if (particle.y > sketch.height) particle.y = 0
-            
-            const alpha = (Math.sin(particle.life) + 1) * 0.5
-            sketch.fill(280, 60, 80, alpha * 0.6)
-            sketch.circle(particle.x, particle.y, particle.size)
-          })
-          
-          // Display lyrics if available
-          if (lyrics && lyrics.length > 0) {
-            sketch.fill(280, 80, 90)
-            sketch.textAlign(sketch.CENTER, sketch.BOTTOM)
-            sketch.textSize(24)
-            sketch.text(lyrics[0], sketch.width / 2, sketch.height - 50)
-          }
-          
-          // Add beat-reactive effects
-          if (audioFeatures.beat) {
-            // Flash effect on beat
-            sketch.fill(280, 100, 100, 0.3)
-            sketch.rect(0, 0, sketch.width, sketch.height)
-          }
-        }
+        
+
+
+
 
         // Handle window resize
         sketch.windowResized = () => {
@@ -592,19 +300,19 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
 
   return (
     <div className="relative w-full h-full bg-transparent p-0 m-0 flex-1" style={{ minHeight: 0, minWidth: 0 }}>
-      {/* Three.js Cube Dance for scene 0 */}
-      {currentScene === 0 && (
-        <div className="absolute inset-0 z-10">
-          <ThreeCubeDance 
-            audioFeatures={audioFeatures}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-          />
-        </div>
-      )}
+      {/* Only Cube Dance scene remains */}
+      <div className="absolute inset-0 z-10 overflow-hidden">
+        <ThreeCubeDance 
+          audioFeatures={audioFeatures}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+        />
+      </div>
+      
+
       
       {/* Canvas container for p5.js scenes (completely hidden when Three.js is active) */}
-      {currentScene !== 0 && (
+      {currentScene !== 0 && currentScene !== 1 && (
         <div 
           ref={canvasRef} 
           className="w-full h-full p-0 m-0 flex-1"
@@ -658,9 +366,8 @@ const CanvasVisualizer: React.FC<CanvasVisualizerProps> = ({
               ? currentLyrics.join(' • ')
               : `Scene: ${[
                 'Cube Dance',       // 0
-                'Shader Spheres',   // 1
-                'Physics Hearts'    // 2
-              ][currentScene]}`
+                'Heart Packing'     // 1
+              ][currentScene % 2]}`
             }
           </span>
         </div>

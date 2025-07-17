@@ -20,7 +20,7 @@ interface CodePanelProps {
 
 // Scene-specific code snippets that correspond to the actual rendering functions
 const sceneCodeSnippets = [
-  // Scene 0: Cube Dance
+  // Cube Dance
   `// Cube Dance - Audio-reactive rotating cubes
 // Inspired by Three.js CodePen with synthwave colors
 
@@ -85,171 +85,6 @@ function renderCubeDance() {
     circle(x, y, size);
   }
 }`,
-
-  // Scene 1: Shader Spheres
-  `// Shader Spheres - Glowing spheres with grid effects
-// Inspired by Three.js shader spheres with synthwave theme
-
-function renderShaderSpheres() {
-  const energy = audioFeatures.energy || 0;
-  const volume = audioFeatures.rms || 0;
-  const beat = audioFeatures.beat;
-  
-  // Audio-reactive background
-  const bgHue = 200 + energy * 30;
-  const bgSaturation = 30 + energy * 40;
-  const bgBrightness = 8 + energy * 15;
-  background(bgHue, bgSaturation, bgBrightness, 0.1);
-  
-  // Create multiple rings of glowing spheres
-  const ringCount = 3;
-  const spheresPerRing = 12 + Math.floor(energy * 8);
-  
-  for (let ring = 0; ring < ringCount; ring++) {
-    const ringRadius = 100 + ring * 80 + energy * 60;
-    const ringSpeed = 0.005 + ring * 0.002;
-    const time = frameCount * ringSpeed;
-    
-    for (let i = 0; i < spheresPerRing; i++) {
-      const angle = (i / spheresPerRing) * TWO_PI + time;
-      const x = width/2 + cos(angle) * ringRadius;
-      const y = height/2 + sin(angle) * ringRadius;
-      
-      // Audio-reactive sphere properties
-      const size = 8 + volume * 15 + (beat ? 5 : 0);
-      const hue = (200 + ring * 40 + i * 20 + energy * 15) % 360;
-      const pulse = sin(frameCount * 0.05 + i * 0.5) * 0.2 + 1;
-      
-      // Multi-layer glow effect
-      for (let j = 6; j > 0; j--) {
-        const glowSize = size * pulse + j * 10;
-        const alpha = (0.4 - j * 0.05) * (0.3 + volume);
-        fill(hue, 80, 80, alpha);
-        circle(x, y, glowSize);
-      }
-      
-      // Core sphere
-      fill(hue, 90, 90, 0.9);
-      circle(x, y, size * pulse);
-    }
-  }
-  
-  // Add animated grid walls
-  const gridSize = 60 + energy * 30;
-  const gridAlpha = 0.2 + volume * 0.3;
-  
-  for (let x = 0; x < width; x += gridSize) {
-    const waveOffset = sin(x * 0.01 + frameCount * 0.02) * 20;
-    stroke(200, 60, 60, gridAlpha);
-    strokeWeight(1);
-    line(x, 0, x + waveOffset, height);
-  }
-  
-  for (let y = 0; y < height; y += gridSize) {
-    const waveOffset = cos(y * 0.01 + frameCount * 0.02) * 20;
-    stroke(200, 60, 60, gridAlpha);
-    strokeWeight(1);
-    line(0, y, width, y + waveOffset);
-  }
-  
-  // Add floating particles
-  const particleCount = 40 + Math.floor(volume * 50);
-  for (let i = 0; i < particleCount; i++) {
-    const x = noise(i * 0.1, frameCount * 0.003) * width;
-    const y = noise(i * 0.1 + 100, frameCount * 0.003) * height;
-    const size = 3 + volume * 8 + (beat ? 4 : 0);
-    const hue = (200 + i * 10 + energy * 20) % 360;
-    
-    fill(hue, 80, 80, 0.6);
-    circle(x, y, size);
-  }
-}`,
-
-  // Scene 2: Physics Hearts
-  `// Physics Hearts - Bouncing hearts with physics simulation
-// Inspired by "Pile of Hearts" CodePen with synthwave colors
-
-function renderPhysicsHearts() {
-  const energy = audioFeatures.energy || 0;
-  const volume = audioFeatures.rms || 0;
-  const beat = audioFeatures.beat;
-  
-  // Audio-reactive background
-  const bgHue = 280 + energy * 20;
-  const bgSaturation = 20 + energy * 30;
-  const bgBrightness = 5 + energy * 10;
-  background(bgHue, bgSaturation, bgBrightness, 0.1);
-  
-  // Physics variables
-  const gravity = 0.3;
-  const bounce = 0.7;
-  const friction = 0.98;
-  const groundY = height * 0.8;
-  
-  // Update and draw hearts
-  hearts.forEach(heart => {
-    // Apply physics
-    heart.vy += gravity;
-    heart.x += heart.vx;
-    heart.y += heart.vy;
-    heart.rotation += heart.rotationSpeed;
-    heart.pulse += 0.1;
-    
-    // Ground collision
-    if (heart.y + heart.size > groundY) {
-      heart.y = groundY - heart.size;
-      heart.vy *= -bounce;
-      heart.vx *= friction;
-    }
-    
-    // Wall collisions
-    if (heart.x - heart.size < 0) {
-      heart.x = heart.size;
-      heart.vx *= -0.8;
-    }
-    if (heart.x + heart.size > width) {
-      heart.x = width - heart.size;
-      heart.vx *= -0.8;
-    }
-    
-    // Audio reactivity
-    const pulseScale = 1 + sin(heart.pulse) * 0.1;
-    const audioScale = 1 + energy * 0.3;
-    const finalSize = heart.size * pulseScale * audioScale;
-    
-    // Draw heart
-    push();
-    translate(heart.x, heart.y);
-    rotate(heart.rotation);
-    scale(finalSize / 25);
-    
-    // Heart shape with audio-reactive colors
-    const heartHue = heart.color.levels[0] + energy * 10;
-    const heartSat = 80 + energy * 20;
-    const heartBright = 90 + energy * 10;
-    fill(heartHue, heartSat, heartBright);
-    
-    // Draw heart shape using bezier curves
-    beginShape();
-    vertex(0, -8);
-    bezierVertex(-8, -8, -8, 4, 0, 8);
-    bezierVertex(8, 4, 8, -8, 0, -8);
-    endShape(CLOSE);
-    
-    pop();
-  });
-  
-  // Add floating particles
-  particles.forEach(particle => {
-    particle.x += particle.vx;
-    particle.y += particle.vy;
-    particle.life += 0.02;
-    
-    const alpha = (sin(particle.life) + 1) * 0.5;
-    fill(280, 60, 80, alpha * 0.6);
-    circle(particle.x, particle.y, particle.size);
-  });
-}`
 ]
 
 const CodePanel: React.FC<CodePanelProps> = ({
@@ -299,7 +134,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
   }, [])
 
   // Get the code for current scene
-  const targetCode = sceneCodeSnippets[currentScene % 3] || code || ''
+  const targetCode = sceneCodeSnippets[0] || code || ''
 
   // Start continuous typing on initial load
   useEffect(() => {
@@ -308,25 +143,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
     }
   }, [isLoading, targetCode])
 
-  // Reset and start typing when scene changes
-  useEffect(() => {
-    if (lastSceneRef.current !== currentScene) {
-      lastSceneRef.current = currentScene
-      setDisplayedCode('')
-      
-      // Clear any existing typing interval
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current)
-        typingIntervalRef.current = null
-      }
-      
-      // Start typing the new scene's code
-      const newTargetCode = sceneCodeSnippets[currentScene % 3] || code || ''
-      if (newTargetCode) {
-        startContinuousTyping(newTargetCode)
-      }
-    }
-  }, [currentScene, code])
+  // Only one scene, no need to reset typing on scene change
 
   // Continuous typing function that loops
   const startContinuousTyping = (codeToType: string) => {
@@ -429,9 +246,9 @@ const CodePanel: React.FC<CodePanelProps> = ({
     }
   }
 
-  // Scene names for display - updated to only show current 3 scenes
+  // Scene names for display - updated to match actual scenes
   const sceneNames = [
-    'Cube Dance', 'Shader Spheres', 'Physics Hearts'
+    'Cube Dance', 'Heart Packing'
   ]
 
   return (
@@ -471,9 +288,9 @@ const CodePanel: React.FC<CodePanelProps> = ({
         <div className="flex items-center gap-4">
           {/* Scene indicator */}
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></div>
+            <div className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse" />
             <span className="text-cyan-400 font-mono text-sm">
-              Scene {currentScene}: {sceneNames[currentScene % 3]}
+              Scene 1: Cube Dance
             </span>
           </div>
           
@@ -536,13 +353,13 @@ const CodePanel: React.FC<CodePanelProps> = ({
             colorDecorators: true,
             codeActionsOnSave: {},
             codeActionsOnSaveTimeout: 750,
-            tabCompletion: 'off' as any,
-            wordBasedSuggestions: false as any,
+            tabCompletion: 'off',
+            wordBasedSuggestions: 'off',
             parameterHints: { enabled: false },
             suggestOnTriggerCharacters: false,
             acceptSuggestionOnCommitCharacter: false,
-            acceptSuggestionOnEnter: 'off' as any,
-            quickSuggestions: false as any,
+            acceptSuggestionOnEnter: 'off',
+            quickSuggestions: false,
             suggest: { showKeywords: false, showSnippets: false, showClasses: false, showFunctions: false, showVariables: false, showModules: false, showConstants: false, showEnums: false, showEnumMembers: false, showColors: false, showFiles: false, showReferences: false, showFolders: false, showTypeParameters: false, showWords: false, showUsers: false, showIssues: false, showOperators: false, showUnits: false, showValues: false },
             hover: { enabled: false },
             contextmenu: false,
@@ -551,7 +368,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
             multiCursorModifier: 'alt',
             accessibilitySupport: 'off',
             ariaLabel: 'Code Editor',
-            renderControlCharacters: false as any,
+            renderControlCharacters: false,
             renderLineHighlight: 'all',
             renderValidationDecorations: 'on',
             renderIndentGuides: true,
@@ -562,7 +379,7 @@ const CodePanel: React.FC<CodePanelProps> = ({
             lineHeight: 20,
             letterSpacing: 0.5,
             cursorBlinking: 'solid',
-            cursorSmoothCaretAnimation: 'off',
+            cursorSmoothCaretAnimation: false,
             cursorStyle: 'line',
             cursorWidth: 2,
             smoothScrolling: false,
