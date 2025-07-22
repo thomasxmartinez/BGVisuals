@@ -12,584 +12,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SynthWave '84 inspired effects */
-@layer utilities {
-  .synthwave-glow {
-    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.6));
-  }
-  
-  .synthwave-glow-purple {
-    filter: drop-shadow(0 0 20px rgba(147, 51, 234, 0.6));
-  }
-  
-  .synthwave-glow-pink {
-    filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.6));
-  }
-  
-  .synthwave-glow-green {
-    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.6));
-  }
-  
-  .synthwave-glow-yellow {
-    filter: drop-shadow(0 0 20px rgba(234, 179, 8, 0.6));
-  }
-  
-  .neon-border {
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    box-shadow: 
-      0 0 20px rgba(0, 255, 255, 0.3),
-      inset 0 0 20px rgba(0, 255, 255, 0.1);
-  }
-  
-  .retro-gradient {
-    background: linear-gradient(
-      135deg,
-      rgba(45, 27, 105, 0.8) 0%,
-      rgba(0, 0, 0, 0.9) 50%,
-      rgba(45, 27, 105, 0.8) 100%
-    );
-  }
-  
-  .synthwave-text {
-    text-shadow: 
-      0 0 10px currentColor,
-      0 0 20px currentColor,
-      0 0 30px currentColor;
-  }
-}
-
 @layer base {
-  html {
-    font-family: 'JetBrains Mono', monospace;
-    cursor: none; /* Hide default cursor */
+  html, body {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    background: #18181b;
+    animation: none !important;
   }
-  
-  body {
-    @apply bg-black text-white;
-    overflow: hidden;
-    cursor: none; /* Hide default cursor */
-  }
-  
   /* Hide cursor on all interactive elements */
   * {
-    cursor: none !important;
+    cursor: auto !important;
   }
-  
   /* Show default cursor only on form elements for accessibility */
   input, textarea, select, button, [role="button"], [tabindex] {
     cursor: auto !important;
   }
 }
 
-@layer components {
-
-  
-  .canvas-container {
-    @apply relative w-full h-full;
-    background: linear-gradient(45deg, #000000, #1a0033, #000000);
-  }
-  
-  .code-panel {
-    @apply border-l border-gray-700;
-    background: transparent;
-  }
-  
-  .watermark {
-    @apply absolute bottom-4 right-4 opacity-20 pointer-events-none;
-    filter: drop-shadow(0 0 10px rgba(255, 0, 255, 0.5));
-  }
-
-  /* SynthWave theme enhancements */
-  .monaco-editor {
-    background: transparent !important;
-  }
-
-  .monaco-editor .margin {
-    background: transparent !important;
-  }
-
-  /* Synthwave code editor with transparent background */
-  .synthwave-code-editor .monaco-editor {
-    background: transparent !important;
-  }
-
-  .synthwave-code-editor .monaco-editor .monaco-editor-background {
-    background: transparent !important;
-  }
-
-  /* Force the editor to show our background */
-  .monaco-editor .monaco-editor-background,
-  .monaco-editor .margin,
-  .monaco-editor .monaco-editor-background {
-    background: transparent !important;
-  }
-
-  /* Override any other background styles */
-  .monaco-editor {
-    background: transparent !important;
-  }
-
-  /* Make sure the container shows our background */
-  .synthwave-code-editor {
-    background: transparent !important;
-  }
-
-  /* Force watermark transparency */
-  .watermark-transparent {
-    opacity: 0.15 !important;
-  }
-
-  .current-line-highlight {
-    box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
-  }
-
-  /* Power mode effects */
-  .power-mode {
-    animation: powerPulse 0.2s ease-in-out;
-  }
-
-  @keyframes powerPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
-  }
-}
-
-/* Custom scrollbar for code editor */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-} 
-
-/* Custom scrollbar for SynthWave aesthetic */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(45, 27, 105, 0.3);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(147, 51, 234, 0.6);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(147, 51, 234, 0.8);
-}
-
-/* Custom animations - more stable */
-
-@keyframes power-mode {
-  0%, 100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    transform: scale(1.05);
-    filter: brightness(1.2);
-  }
-}
-
-@keyframes loading-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes loading-pulse {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-}
-
-@keyframes progress-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
-  }
-}
-
-@keyframes text-pulse {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.8;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-/* Stable loading text animation */
-@keyframes loading-dots {
-  0%, 20% { content: ''; }
-  40% { content: '.'; }
-  60% { content: '..'; }
-  80%, 100% { content: '...'; }
-}
-
-/* Utility classes */
-
-.power-mode {
-  animation: power-mode 0.2s ease-in-out;
-}
-
-.loading-spin {
-  animation: loading-spin 3s linear infinite;
-}
-
-.loading-pulse {
-  animation: loading-pulse 1s ease-in-out infinite;
-}
-
-.progress-glow {
-  animation: progress-glow 2s ease-in-out infinite;
-}
-
-.text-pulse {
-  animation: text-pulse 1.5s ease-in-out infinite;
-}
-
-/* Stable loading text */
-.loading-text {
-  animation: none;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.loading-text.stable {
-  animation: text-pulse 2s ease-in-out infinite;
-}
-
-/* Graffiti font effect */
-.graffiti-text {
-  font-family: monospace;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  text-shadow: 
-    2px 2px 0px rgba(0,0,0,0.8),
-    4px 4px 0px rgba(255,0,255,0.3),
-    0 0 20px rgba(255,0,255,0.5);
-}
-
-/* Current line highlight */
-.current-line-highlight {
-  border-left: 3px solid rgba(255, 0, 255, 0.8) !important;
-  background-color: rgba(255, 0, 255, 0.1) !important;
-}
-
-/* Power mode line highlight */
-.power-mode-line {
-  border-left: 5px solid rgba(255, 0, 255, 1) !important;
-  background-color: rgba(255, 0, 255, 0.3) !important;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.5) !important;
-} 
-
-.vaporwave-line-highlight {
-  background: linear-gradient(90deg, #00fff7 0%, #a259ff 100%) !important;
-  border-left: 4px solid #00fff7 !important;
-  opacity: 0.7;
-}
-
-.visual-glow-line {
-  background: linear-gradient(90deg, #fff700 0%, #00fff7 100%) !important;
-  box-shadow: 0 0 16px #fff70099, 0 0 32px #00fff799;
-}
-
-.graffiti-font {
-  font-family: 'Graffiti Bubble Version', sans-serif;
-  letter-spacing: 2px;
-}
-
-.graffiti-font.cyan-glow {
-  text-shadow:
-    0 0 12px #fff,
-    0 0 24px #00eaff,
-    0 0 48px #00eaff,
-    0 0 96px #00eaff;
-}
-
-.graffiti-font.pink-glow {
-  text-shadow:
-    0 0 12px #fff,
-    0 0 24px #ff3ebf,
-    0 0 48px #ff3ebf,
-    0 0 96px #ff3ebf;
-} 
-
-.watermark-bg {
-  background-color: transparent !important;
-  background-image: url('/assets/watermark3.svg');
-  background-size: 60%;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.15;
-  pointer-events: none;
-  z-index: 0;
-  filter: blur(0.5px) brightness(1.1);
-} 
-
-.code-glow-text .mtk {
-  text-shadow: 0 0 6px #00fff7, 0 0 12px #a259ff, 0 0 2px #fff;
-}
-
-/* Code glow container and enhanced text effects */
-.code-glow-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.code-glow-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.1) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.code-glow-text {
+.dancing-svg-text-true-shape-p {
   position: relative;
   z-index: 2;
-}
-
-.code-glow-text .monaco-editor {
-  background: transparent !important;
-}
-
-.code-glow-text .monaco-editor .margin {
-  background: transparent !important;
-}
-
-.code-glow-text .monaco-editor .monaco-editor-background {
-  background: transparent !important;
-}
-
-/* Enhanced text glow for different token types */
-.code-glow-text .mtk1 { /* keywords */
-  text-shadow: 0 0 8px rgba(197, 134, 192, 0.8), 0 0 15px rgba(197, 134, 192, 0.4);
-}
-
-.code-glow-text .mtk2 { /* strings */
-  text-shadow: 0 0 8px rgba(206, 145, 120, 0.8), 0 0 15px rgba(206, 145, 120, 0.4);
-}
-
-.code-glow-text .mtk3 { /* comments */
-  text-shadow: 0 0 6px rgba(106, 153, 85, 0.6), 0 0 12px rgba(106, 153, 85, 0.3);
-}
-
-.code-glow-text .mtk4 { /* numbers */
-  text-shadow: 0 0 8px rgba(181, 206, 168, 0.8), 0 0 15px rgba(181, 206, 168, 0.4);
-}
-
-.code-glow-text .mtk5 { /* functions */
-  text-shadow: 0 0 8px rgba(220, 220, 170, 0.8), 0 0 15px rgba(220, 220, 170, 0.4);
-}
-
-.code-glow-text .mtk6 { /* variables */
-  text-shadow: 0 0 8px rgba(156, 220, 254, 0.8), 0 0 15px rgba(156, 220, 254, 0.4);
-}
-
-/* Cursor glow effect */
-.code-glow-text .monaco-editor .cursor {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.4);
-  background-color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Error state styles */
-.error-overlay {
-  backdrop-filter: blur(10px);
-  animation: errorPulse 2s ease-in-out infinite;
-}
-
-@keyframes errorPulse {
-  0%, 100% {
-    background-color: rgba(127, 29, 29, 0.8);
-  }
-  50% {
-    background-color: rgba(153, 27, 27, 0.9);
-  }
-}
-
-/* Prevent text jumping */
-.loading-container {
-  min-height: 2rem;
+  font-size: 13px;
+  line-height: 0.7;
+  font-weight: 400;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+  transition: .2s cubic-bezier(.4,2,.6,1);
+  pointer-events: none;
+  user-select: none;
+  word-break: break-word;
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  -webkit-mask-image: url('/assets/irlhotpersonhead.svg');
+  mask-image: url('/assets/irlhotpersonhead.svg');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
-/* Stable neon glow */
-.neon-glow {
-  text-shadow: 
-    0 0 5px currentColor,
-    0 0 10px currentColor,
-    0 0 15px currentColor,
-    0 0 20px currentColor;
-  animation: neonPulse 2s ease-in-out infinite;
+.neon-gradient-text {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  background: linear-gradient(90deg, #36f9f6 0%, #ff7edb 33%, #a259ff 66%, #36f9f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+  filter: none;
+  opacity: 1;
 }
 
-@keyframes neonPulse {
-  0%, 100% {
-    text-shadow: 
-      0 0 5px currentColor,
-      0 0 10px currentColor,
-      0 0 15px currentColor,
-      0 0 20px currentColor;
-  }
-  50% {
-    text-shadow: 
-      0 0 10px currentColor,
-      0 0 20px currentColor,
-      0 0 30px currentColor,
-      0 0 40px currentColor;
-  }
+.dancing-svg-text-true-shape-p.pulse {
+  transform: scale(1.08);
+  filter: none;
+  transition: transform 0.15s cubic-bezier(.4,2,.6,1), filter 0.15s cubic-bezier(.4,2,.6,1);
 } 
 
-/* Animation for typing cursor */
-@keyframes cursor-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-
-.cursor-blink {
-  animation: cursor-blink 1s infinite;
-}
-
-/* SynthWave background pattern */
-.synthwave-bg {
-  background-image: 
-    linear-gradient(45deg, rgba(147, 51, 234, 0.1) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(147, 51, 234, 0.1) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(147, 51, 234, 0.1) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(147, 51, 234, 0.1) 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-}
-
-/* Glow effect for watermark */
-.watermark-glow {
-  filter: 
-    drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))
-    drop-shadow(0 0 40px rgba(255, 255, 255, 0.2))
-    drop-shadow(0 0 60px rgba(255, 255, 255, 0.1));
-}
-
-/* Retro scanlines effect */
-.scanlines {
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 255, 255, 0.03) 2px,
-    rgba(0, 255, 255, 0.03) 4px
-  );
-}
-
-/* SynthWave button styling */
-.synthwave-button {
-  background: linear-gradient(45deg, rgba(147, 51, 234, 0.8), rgba(0, 255, 255, 0.8));
-  border: 1px solid rgba(0, 255, 255, 0.5);
-  box-shadow: 
-    0 0 10px rgba(0, 255, 255, 0.3),
-    inset 0 0 10px rgba(0, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.synthwave-button:hover {
-  box-shadow: 
-    0 0 20px rgba(0, 255, 255, 0.5),
-    inset 0 0 20px rgba(0, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-/* Audio reactive glow */
-.audio-glow {
-  transition: filter 0.1s ease;
-}
-
-.audio-glow.high-energy {
-  filter: drop-shadow(0 0 30px rgba(0, 255, 255, 0.8));
-}
-
-.audio-glow.beat {
-  filter: drop-shadow(0 0 40px rgba(236, 72, 153, 0.9));
-} 
-
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/Dina-Font-TTF-Remastered/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/Dina-Font-TTF-Remastered/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/Dina-Font-TTF-Remastered/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-Italic.ttf') format('truetype');
-  font-weight: 400;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/Dina-Font-TTF-Remastered/JetBrainsMono-2.304/fonts/ttf/JetBrainsMono-BoldItalic.ttf') format('truetype');
-  font-weight: 700;
-  font-style: italic;
-}
-
-.jetbrainsmono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-/* Neon glow for Monaco Editor code - SynthWave '84 official CSS hack */
-.monaco-editor .mtk {
-  text-shadow:
-    0 0 2px #fff,
-    0 0 10px #fff,
-    0 0 5px #f400ff,
-    0 0 20px #f400ff,
-    0 0 30px #f400ff,
-    0 0 50px #f400ff,
-    0 0 80px #f400ff;
+.watermark {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  opacity: 0.2;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px rgba(255, 0, 255, 0.5));
 } 

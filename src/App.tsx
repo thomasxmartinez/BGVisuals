@@ -1,12 +1,48 @@
 import { useState, useEffect, useRef } from 'react'
+import React from 'react'
 import CanvasVisualizer from './components/CanvasVisualizer'
 import CodePanel from './components/CodePanel'
 import AudioController from './components/AudioController'
 import BeatDetector from './components/BeatDetector'
 import LyricsDetector from './components/LyricsDetector'
-
-import { AudioFeatures } from './types/audio'
+import NeonCityReactiveBackground from './components/NeonCityReactiveBackground';
+import NeonCityCodeEditor from './components/NeonCityCodeEditor';
 import './index.css'
+import { AudioFeatures } from './types/audio'
+
+// Add this at the top of the file or in a global.d.ts file if you prefer
+// @ts-ignore
+// Vite raw loader declarations for TypeScript
+// eslint-disable-next-line
+declare module '*.ts?raw';
+
+// Add ErrorBoundary component at the top
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-black/90 z-[99999] text-pink-400">
+          <h1 className="text-3xl font-bold mb-4">Something went wrong.</h1>
+          <pre className="bg-gray-900 p-4 rounded-lg max-w-xl overflow-x-auto text-left text-xs text-yellow-200 border border-pink-500/40">
+            {this.state.error?.toString()}
+          </pre>
+          <button onClick={() => window.location.reload()} className="mt-6 px-6 py-2 rounded bg-pink-600 text-white font-bold shadow-lg">Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   const [audioFeatures, setAudioFeatures] = useState<AudioFeatures>({
@@ -34,10 +70,6 @@ function App() {
   const timeIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [currentLyrics, setCurrentLyrics] = useState<string[]>([])
   
-  // Custom cursor state
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isMouseVisible, setIsMouseVisible] = useState(true)
-
   // Remove sceneMap - we'll use all scenes sequentially
 
   // Update current time when playing
@@ -130,33 +162,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [sceneCount])
 
-  // Custom cursor effect
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      setMousePosition({ x: event.clientX, y: event.clientY })
-      setIsMouseVisible(true)
-    }
-
-    const handleMouseLeave = () => {
-      setIsMouseVisible(false)
-    }
-
-    const handleMouseEnter = () => {
-      setIsMouseVisible(true)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseleave', handleMouseLeave)
-    document.addEventListener('mouseenter', handleMouseEnter)
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseleave', handleMouseLeave)
-      document.removeEventListener('mouseenter', handleMouseEnter)
-    }
-  }, [])
-
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -166,114 +171,144 @@ function App() {
     }
   }, [])
 
-  return (
-    <div className="min-h-screen h-screen w-full flex flex-col md:flex-row relative overflow-hidden">
-      {/* Left: Visualizer with overlayed Audio Controls */}
-      <div className="w-full md:w-1/2 h-full flex flex-col flex-1 min-h-0 p-0 md:p-0 bg-black/80 relative z-10 synthwave-bg">
-        <div className="relative w-full h-full flex-1 min-h-0 p-0 m-0 flex">
-          {/* Audio Controls overlay in top-left */}
-          <div className="absolute top-2 left-2 z-30 w-64 max-w-[90vw] md:w-56 md:max-w-xs">
-            <AudioController
-              onFeaturesUpdate={handleFeaturesUpdate}
-              onPlayStateChange={handlePlayStateChange}
-              onTimeUpdate={handleTimeUpdate}
-              onAudioReady={handleAudioReady}
-              small
-            />
-          </div>
-          {/* Visualizer fills entire pane */}
-          <div className="flex-1 h-full w-full min-h-0 relative">
-            <CanvasVisualizer
-              audioFeatures={audioFeatures}
-              isPlaying={isPlaying}
-              currentTime={currentTime}
-              isAudioReady={isAudioReady}
-              currentScene={0}
-              currentLyrics={currentLyrics}
-            />
-            
-            {/* Three.js Components are now handled inside CanvasVisualizer */}
-          </div>
-        </div>
-      </div>
-      
-      {/* Right: Code Panel */}
-      <div className="w-full md:w-1/2 h-full flex flex-col items-center justify-start p-2 md:p-8 relative z-10">
-        <div className="flex-1 w-full max-w-4xl mt-4">
-          <CodePanel
-            audioFeatures={audioFeatures}
-            currentScene={currentScene}
-            sceneTransition={sceneTransition}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            code={""}
+  // Lyrics-aware text: if lyrics, repeat them to fill the shape; else use 'irlhotperson'
+  const textContent = (currentLyrics && currentLyrics.length > 0)
+    ? Array(600).fill(currentLyrics.join(' • ')).join(' ')
+    : Array(600).fill('irlhotperson').join(' ');
 
-          />
+  return (
+    <ErrorBoundary>
+      {/* All previous app content goes here */}
+      <div className="min-h-screen h-screen w-full relative overflow-hidden">
+        {/* Neon City Code Editor as background */}
+        <NeonCityCodeEditor audioFeatures={audioFeatures} />
+        {/* Neon City music-reactive background for both panes */}
+        {/* NeonCityReactiveBackground removed so Cube Dance is visible */}
+        {/* Split left/right overlays, Cube Dance covers background */}
+        <div className="absolute inset-0 w-full h-full z-0 flex flex-row">
+          {/* Left: Lyrics SVG overlay */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <div className="flex items-center justify-center w-full h-full pointer-events-none select-none">
+              <img
+                src="/assets/irlhotpersonhead.svg"
+                alt="irlhotpersonhead"
+                className="w-[95%] h-[95%] max-w-[800px] max-h-[95vh]"
+                style={{
+                  opacity: 0.25,
+                  zIndex: 1
+                }}
+                draggable={false}
+              />
+              <p className={`absolute inset-0 flex items-center justify-center text-center dancing-svg-text-true-shape-p neon-gradient-text${audioFeatures.beat ? ' pulse' : ''}`}
+                style={{
+                  fontSize: '1.2vw',
+                  opacity: 0.5,
+                  lineHeight: 1.1,
+                  fontWeight: 700,
+                  width: '80%',
+                  height: '80%',
+                  left: '10%',
+                  top: '10%',
+                  zIndex: 2,
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  WebkitMaskImage: 'url(/assets/irlhotpersonhead.svg)',
+                  maskImage: 'url(/assets/irlhotpersonhead.svg)',
+                  WebkitMaskSize: 'contain',
+                  maskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center',
+                  maskPosition: 'center',
+                  position: 'absolute',
+                }}
+              >{textContent}</p>
+            </div>
+          </div>
+          {/* Right: Watermark SVG, same size as left SVG */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <div className="flex items-center justify-center w-full h-full pointer-events-none select-none">
+              <img
+                src="/assets/watermark3.svg"
+                alt="watermark"
+                className="w-2/3 h-2/3 max-w-[350px] max-h-[40vh]"
+                style={{
+                  opacity: 0.13 + (audioFeatures.energy || 0) * 0.10 + (audioFeatures.beat ? 0.06 : 0),
+                  filter: `drop-shadow(0 0 40px #2d1b69) drop-shadow(0 0 80px #a259ff) drop-shadow(0 0 120px #ff7edb)`,
+                  transform: `scale(${1 + (audioFeatures.energy || 0) * 0.08 + (audioFeatures.beat ? 0.04 : 0)})`,
+                  transition: 'transform 0.2s cubic-bezier(.4,2,.6,1), filter 0.2s cubic-bezier(.4,2,.6,1), opacity 0.2s cubic-bezier(.4,2,.6,1)',
+                  zIndex: 1
+                }}
+                draggable={false}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Beat Detector (for debugging) */}
-      <div className="fixed top-4 right-4 z-50">
-        <BeatDetector 
-          audioFeatures={audioFeatures}
+        
+        {/* Right pane removed; Cube Dance now covers the whole screen */}
+        
+        {/* Scene Transition Indicator */}
+                {sceneTransition && (
+            <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-purple-600/80 text-white px-4 py-2 rounded-lg font-mono text-sm animate-pulse">
+              Scene Transition: 1/1
+            </div>
+          )}
+        
+        {/* Manual Scene Controls removed - no 1/1 indicator */}
+        
+        {/* Lyrics System */}
+        <LyricsDetector
           isPlaying={isPlaying}
+          currentTime={currentTime}
+          audioFeatures={audioFeatures}
+          onLyricsUpdate={handleLyricsUpdate}
         />
-      </div>
-      
-      {/* Scene Transition Indicator */}
-              {sceneTransition && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-purple-600/80 text-white px-4 py-2 rounded-lg font-mono text-sm animate-pulse">
-            Scene Transition: 1/1
+        
+        {/* Audio not playing warning */}
+        {!isPlaying && isAudioReady && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-black/80 text-yellow-400 text-3xl font-bold p-8 rounded-xl border-2 border-yellow-500 shadow-xl">
+              AUDIO NOT PLAYING<br />
+              Please click Play to start the visualizer
+            </div>
           </div>
         )}
-      
-      {/* Manual Scene Controls */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex gap-2">
-        <div className="bg-purple-600/80 text-white px-3 py-1 rounded font-mono text-sm">
-          1/1
-        </div>
-      </div>
-      
-      {/* Lyrics System */}
-      <LyricsDetector
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        audioFeatures={audioFeatures}
-        onLyricsUpdate={handleLyricsUpdate}
-      />
-      
-      {/* Audio not playing warning */}
-      {!isPlaying && isAudioReady && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-black/80 text-yellow-400 text-3xl font-bold p-8 rounded-xl border-2 border-yellow-500 shadow-xl">
-            AUDIO NOT PLAYING<br />
-            Please click Play to start the visualizer
-          </div>
-        </div>
-      )}
-      
-      {/* Custom Cursor with SVG Head */}
-      {isMouseVisible && (
-        <div 
-          className="fixed pointer-events-none z-[9999] transition-transform duration-75 ease-out"
-          style={{
-            left: mousePosition.x - 16,
-            top: mousePosition.y - 16,
-            transform: 'translate(-50%, -50%)'
-          }}
-        >
-          <img
-            src="/assets/irlhotpersonhead.svg"
-            alt="cursor"
-            className="w-8 h-8 drop-shadow-lg"
+        
+        {/* Tiny watermark in bottom right corner, fixed for the whole app */}
+        <div className="fixed bottom-4 right-4 z-50 pointer-events-none select-none">
+          <img 
+            src="/assets/watermark3.svg" 
+            alt="watermark" 
+            className="w-16 h-16"
             style={{
-              filter: 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(255, 0, 255, 0.4))',
-              animation: isPlaying ? 'pulse 2s ease-in-out infinite' : 'none'
+              opacity: 0.3,
+              filter: 'drop-shadow(0 0 10px rgba(54, 249, 246, 0.3))'
             }}
           />
         </div>
-      )}
-    </div>
+        {/* Cube Dance visualizer at the very front */}
+        <div className="absolute inset-0 w-full h-full z-50">
+          <CanvasVisualizer
+            audioFeatures={audioFeatures}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            isAudioReady={isAudioReady}
+            currentScene={0}
+            currentLyrics={currentLyrics}
+          />
+        </div>
+        {/* Audio Controls overlay in top-left, now above the visualizer */}
+        <div className="absolute top-2 left-2 z-50 w-64 max-w-[90vw] md:w-56 md:max-w-xs">
+          <AudioController
+            onFeaturesUpdate={handleFeaturesUpdate}
+            onPlayStateChange={handlePlayStateChange}
+            onTimeUpdate={handleTimeUpdate}
+            onAudioReady={handleAudioReady}
+            small
+          />
+        </div>
+      </div>
+    </ErrorBoundary>
   )
 }
 

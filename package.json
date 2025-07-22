@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@magenta/music": "^1.23.1",
-    "@monaco-editor/react": "^4.6.0",
+    "@monaco-editor/react": "^4.7.0",
     "@types/p5": "^1.7.0",
     "@types/three": "^0.178.1",
     "ammo.js": "^0.0.10",
@@ -22,6 +22,7 @@
     "gsap": "^3.13.0",
     "lucide-react": "^0.292.0",
     "meyda": "^5.2.0",
+    "monaco-editor": "^0.52.2",
     "node-fetch": "^2.7.0",
     "p5": "^1.7.0",
     "react": "^18.2.0",
