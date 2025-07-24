@@ -31,6 +31,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
   const playerRef = useRef<Tone.Player | null>(null)
   const analyzerRef = useRef<Tone.Analyser | null>(null)
   const startTimeRef = useRef<number>(0)
+  const pauseTimeRef = useRef<number>(0)
   const animationFrameRef = useRef<number | null>(null)
   const isDisposed = useRef(false)
 
@@ -103,6 +104,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
     setSelectedFile(selectedPath)
     const audioFile = audioFiles.find(file => file.path && file.path === selectedPath)
     setFileName(audioFile?.name || selectedPath)
+    pauseTimeRef.current = 0
     setIsLoading(true)
     onAudioReady?.(false)
     loadAudioFile(selectedPath)
@@ -224,16 +226,17 @@ const AudioController: React.FC<AudioControllerProps> = ({
     try {
       if (playerRef.current.state === 'started') {
         await playerRef.current.stop()
+        pauseTimeRef.current = (Date.now() - startTimeRef.current) / 1000 + pauseTimeRef.current
         onPlayStateChange(false)
       } else {
         startTimeRef.current = Date.now()
-        await playerRef.current.start()
+        await playerRef.current.start(0, pauseTimeRef.current)
         onPlayStateChange(true)
         // Track time
         const updateTime = () => {
           if (isDisposed.current) return
           if (playerRef.current?.state === 'started') {
-            const elapsed = (Date.now() - startTimeRef.current) / 1000
+            const elapsed = (Date.now() - startTimeRef.current) / 1000 + pauseTimeRef.current
             onTimeUpdate(elapsed)
             if (!isDisposed.current) {
               requestAnimationFrame(updateTime)
@@ -301,7 +304,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
       )}
 
       {/* Play/Pause Button */}
-      <div className="flex justify-center mt-1">
+      <div className="flex justify-center mt-1 gap-2">
         <button
           onClick={togglePlayback}
           disabled={!isInitialized || isLoading || !selectedFile || !playerRef.current || !playerRef.current.buffer || !playerRef.current.buffer.loaded}
@@ -309,6 +312,23 @@ const AudioController: React.FC<AudioControllerProps> = ({
         >
           {isLoading ? '⏳' : playerRef.current?.state === 'started' ? '⏸️ Pause' : '▶️ Play'}
         </button>
+        {playerRef.current?.state === 'started' && (
+          <button
+            onClick={async () => {
+              if (playerRef.current) {
+                await playerRef.current.stop()
+                pauseTimeRef.current = 0
+                onTimeUpdate(0)
+                startTimeRef.current = Date.now()
+                await playerRef.current.start(0, 0)
+              }
+            }}
+            className={`rounded-full bg-gradient-to-r from-pink-500 via-cyan-400 to-purple-600 text-black font-extrabold graffiti-font shadow-lg neon-glow border-2 border-pink-400/60 transition-all duration-200 hover:scale-105 ${small ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'}`}
+            title="Reset to beginning"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       {/* Status Messages */}
