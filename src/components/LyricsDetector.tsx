@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 interface LyricsDetectorProps {
   isPlaying: boolean
   currentTime: number // in seconds
-  audioFeatures: any
   onLyricsUpdate: (lyrics: string[]) => void
 }
 
@@ -60,11 +59,10 @@ const groupWordsIntoLines = (words: Word[], maxLineDuration = 4) => {
 const LyricsDetector: React.FC<LyricsDetectorProps> = ({
   isPlaying,
   currentTime,
-  audioFeatures,
   onLyricsUpdate
 }) => {
   const [lyricLines, setLyricLines] = useState<LyricLine[]>([])
-  const [currentLyrics, setCurrentLyrics] = useState<string[]>([])
+  const [, setCurrentLyrics] = useState<string[]>([])
   const [loaded, setLoaded] = useState(false)
 
   // Load and parse transcript on mount
@@ -78,7 +76,7 @@ const LyricsDetector: React.FC<LyricsDetectorProps> = ({
         }
         setLoaded(true)
       })
-      .catch(err => {
+      .catch(() => {
         setLoaded(true)
         setLyricLines([])
       })

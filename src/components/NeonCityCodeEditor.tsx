@@ -85,13 +85,16 @@ export default function NeonCityCodeEditor({ audioFeatures }: NeonCityCodeEditor
   // Music reactivity
   const editorRef = useReactRef<any>();
   const [fileIdx, setFileIdx] = useState(0);
-  const [code, setCode] = useState('');
-  const [linesShown, setLinesShown] = useState(0);
   const [loading, setLoading] = useState(true);
   const codeLinesRef = useReactRef<string[]>([]);
-  const [scrollTop, setScrollTop] = useState(0);
-  const animationFrameRef = useReactRef<number | null>();
   const [showCursor, setShowCursor] = useState(true);
+  
+  // Ultra-reactive scrolling state
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [visibleLines, setVisibleLines] = useState<string[]>([]);
+  const animationFrameRef = useReactRef<number | null>(null);
+  const lastTimeRef = useReactRef<number>(0);
+  const allCodeRef = useReactRef<string>('');
 
   // Register theme on mount
   useEffect(() => {
@@ -106,64 +109,123 @@ export default function NeonCityCodeEditor({ audioFeatures }: NeonCityCodeEditor
     fetch(FILES[fileIdx].path)
       .then(res => res.text())
       .then(text => {
-        setCode(text);
-        codeLinesRef.current = text.split('\n');
-        setLinesShown(0);
+        // Filter out comments and empty lines for cleaner typing
+        const lines = text.split('\n').filter(line => {
+          const trimmed = line.trim();
+          return trimmed.length > 0 && 
+                 !trimmed.startsWith('//') && 
+                 !trimmed.startsWith('/*') && 
+                 !trimmed.startsWith('*') &&
+                 !trimmed.startsWith('*/');
+        });
+        codeLinesRef.current = lines;
+        allCodeRef.current = lines.join('\n');
+        setCurrentLineIndex(0);
         setLoading(false);
       });
   }, [fileIdx]);
 
-  // Typing effect: reveal lines one by one, speed based on BPM/energy/beat, always loop files
+  // Ultra-reactive animation loop using requestAnimationFrame
   useEffect(() => {
     if (loading) return;
+
+    // Cancel any existing animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    const animate = (currentTime: number) => {
+      if (!lastTimeRef.current) lastTimeRef.current = currentTime;
+      
+      const deltaTime = currentTime - lastTimeRef.current;
+      lastTimeRef.current = currentTime;
+
+      // Ultra-reactive speed calculation
+      const bpm = audioFeatures?.bpm || 120;
+      const energy = audioFeatures?.energy || 0;
+      const beat = audioFeatures?.beat ? 1 : 0;
+      
+      // Sexy reactive speed - much more dramatic response
+      let baseSpeed = 1000 / (bpm + energy * 200); // More energy = much faster
+      if (beat) baseSpeed *= 0.1; // On beat = 10x faster!
+      
+      // Convert to line advancement
+      const linesPerMs = baseSpeed / 1000;
+      const linesToAdvance = linesPerMs * deltaTime;
+      
+      setCurrentLineIndex(prevIndex => {
+        const newIndex = prevIndex + linesToAdvance;
+        
+        // If we've reached the end, move to next file immediately
+        if (newIndex >= codeLinesRef.current.length) {
+          setFileIdx(idx => (idx + 1) % FILES.length);
+          return 0;
+        }
+        
+        return newIndex;
+      });
+
+      // Continue animation
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [loading, audioFeatures, fileIdx]);
+
+  // Update visible lines for smooth scrolling
+  useEffect(() => {
+    if (loading || !codeLinesRef.current.length) return;
+
+    // Show a window of lines around the current position
+    const windowSize = 25; // Smaller window for more focused view
+    const startIndex = Math.max(0, Math.floor(currentLineIndex) - Math.floor(windowSize / 2));
+    const endIndex = Math.min(codeLinesRef.current.length, startIndex + windowSize);
+    
+    const visible = codeLinesRef.current.slice(startIndex, endIndex);
+    setVisibleLines(visible);
+    
+    // Smooth scroll to keep current line visible
+    if (editorRef.current) {
+      try {
+        const lineInWindow = Math.floor(currentLineIndex) - startIndex;
+        editorRef.current.revealLineInCenter(lineInWindow + 1);
+      } catch (e) {
+        // Silent fail
+      }
+    }
+  }, [currentLineIndex, loading]);
+
+  // Ultra-reactive cursor blinking
+  useEffect(() => {
     const bpm = audioFeatures?.bpm || 120;
     const energy = audioFeatures?.energy || 0;
-    const beat = audioFeatures?.beat ? 1 : 0;
-    // Much faster, more jammy typing: on beat, go super fast
-    let msPerLine = Math.max(8, Math.min(80, 6000 / (bpm + energy * 40)));
-    if (beat) msPerLine = 8; // On beat, type instantly
-    if (linesShown < codeLinesRef.current.length) {
-      const timeout = setTimeout(() => {
-        setLinesShown(l => l + 1);
-      }, msPerLine);
-      return () => clearTimeout(timeout);
-    } else {
-      // When finished, immediately start next file from the top
-      const nextTimeout = setTimeout(() => {
-        setFileIdx(idx => (idx + 1) % FILES.length);
-        setLinesShown(0);
-      }, 200);
-      return () => clearTimeout(nextTimeout);
-    }
-  }, [linesShown, loading, audioFeatures, fileIdx]);
-
-  // Blinking cursor effect
-  useEffect(() => {
-    // Cursor blinks faster and in sync with typing
-    const bpm = audioFeatures?.bpm || 120;
     const beat = audioFeatures?.beat;
-    let blinkMs = 200;
-    if (beat) blinkMs = 60;
-    else if (bpm > 160) blinkMs = 100;
-    else if (bpm > 120) blinkMs = 140;
+    
+    // Much more reactive cursor
+    let blinkMs = 500;
+    if (beat) blinkMs = 30; // Super fast on beat
+    else if (energy > 0.7) blinkMs = 50; // Fast on high energy
+    else if (bpm > 140) blinkMs = 100; // Fast on high BPM
+    
     const interval = setInterval(() => setShowCursor(c => !c), blinkMs);
     return () => clearInterval(interval);
   }, [audioFeatures]);
 
-  // Always scroll to bottom as lines are revealed
+  // Cleanup on unmount
   useEffect(() => {
-    if (editorRef.current && linesShown > 0) {
-      try {
-        editorRef.current.revealLineInCenterIfOutsideViewport(linesShown);
-      } catch (e) {}
-    }
-  }, [linesShown]);
-
-  // When file changes, reset scroll and typing
-  useEffect(() => {
-    setScrollTop(0);
-    setLinesShown(0);
-  }, [fileIdx]);
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -176,20 +238,53 @@ export default function NeonCityCodeEditor({ audioFeatures }: NeonCityCodeEditor
         zIndex: 1, // Behind CubeDance
         pointerEvents: 'none',
         background: 'transparent',
-        opacity: 0.25,
+        opacity: 0.4,
         border: 'none',
         boxShadow: 'none',
       }}
     >
+      <style>
+        {`
+          .monaco-editor {
+            border: none !important;
+            outline: none !important;
+          }
+          .monaco-editor .overflow-guard {
+            border: none !important;
+            outline: none !important;
+          }
+          .monaco-editor .monaco-editor-background {
+            border: none !important;
+            outline: none !important;
+          }
+          .monaco-editor .margin {
+            display: none !important;
+          }
+          .monaco-editor .decorationsOverviewRuler {
+            display: none !important;
+          }
+          .monaco-editor .scrollbar {
+            display: none !important;
+          }
+          .monaco-editor .monaco-scrollable-element {
+            border: none !important;
+            outline: none !important;
+          }
+        `}
+      </style>
       <MonacoEditor
         value={
           (() => {
-            const lines = codeLinesRef.current.slice(0, linesShown);
-            if (showCursor && linesShown < codeLinesRef.current.length) {
-              // Add blinking cursor to the end of the last line
-              if (lines.length === 0) return '▍';
-              lines[lines.length - 1] = lines[lines.length - 1] + '▍';
+            if (loading || visibleLines.length === 0) return '▍';
+            
+            // Add cursor to the current line
+            const lines = [...visibleLines];
+            const currentLineInWindow = Math.floor(currentLineIndex) - Math.max(0, Math.floor(currentLineIndex) - Math.floor(25 / 2));
+            
+            if (showCursor && currentLineInWindow < lines.length && currentLineInWindow >= 0) {
+              lines[currentLineInWindow] = lines[currentLineInWindow] + '▍';
             }
+            
             return lines.join('\n');
           })()
         }
@@ -199,7 +294,7 @@ export default function NeonCityCodeEditor({ audioFeatures }: NeonCityCodeEditor
           readOnly: true,
           minimap: { enabled: false },
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Hack Nerd Font', monospace",
-          fontSize: 18,
+          fontSize: 16,
           lineNumbers: 'off',
           scrollBeyondLastLine: false,
           smoothScrolling: true,
@@ -209,11 +304,28 @@ export default function NeonCityCodeEditor({ audioFeatures }: NeonCityCodeEditor
           overviewRulerLanes: 0,
           renderWhitespace: 'none',
           renderValidationDecorations: 'off',
-          wordWrap: 'on',
+          wordWrap: 'off',
           scrollbar: {
             vertical: 'hidden',
             horizontal: 'hidden',
           },
+          folding: false,
+          glyphMargin: false,
+          lineDecorationsWidth: 0,
+          lineNumbersMinChars: 0,
+          bracketPairColorization: {
+            enabled: false,
+          },
+          colorDecorators: false,
+          quickSuggestions: false,
+          parameterHints: {
+            enabled: false,
+          },
+          hover: {
+            enabled: false,
+          },
+          contextmenu: false,
+
         }}
         height="100vh"
         width="50vw"

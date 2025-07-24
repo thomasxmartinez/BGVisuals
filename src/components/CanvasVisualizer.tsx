@@ -1,14 +1,13 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import p5 from 'p5'
 import { AudioFeatures } from '../types/audio'
 import ThreeCubeDance from './ThreeCubeDance'
-import HotHeadWave from './HotHeadWave'
 
 interface CanvasVisualizerProps {
   audioFeatures: AudioFeatures
   isPlaying: boolean
   currentTime: number
-  isAudioReady?: boolean
+  // isAudioReady?: boolean
   currentScene?: number
   sceneMap?: number[]
   audioStuck?: boolean
@@ -21,16 +20,13 @@ const CanvasVisualizerComponent: React.FC<CanvasVisualizerProps> = ({
   audioFeatures,
   isPlaying,
   currentTime,
-  isAudioReady = false,
+  // isAudioReady = false,
   currentScene = 0,
-  sceneMap = [],
-  audioStuck = false,
   onReady,
-  currentLyrics = [],
-  sceneTransition = false
+  currentLyrics = []
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [, setIsLoading] = useState(true)
   const p5Instance = useRef<p5 | null>(null)
   const isInitialized = useRef(false)
 
@@ -63,7 +59,6 @@ const CanvasVisualizerComponent: React.FC<CanvasVisualizerProps> = ({
         let watermark: p5.Image | null = null
         let sceneTransition = 0 // 0-1 transition value
         let currentSceneIndex = 0
-        let lastSceneChange = 0
         
         // Smoothing variables for stable visuals
         let smoothedBass = 0
@@ -171,7 +166,6 @@ const CanvasVisualizerComponent: React.FC<CanvasVisualizerProps> = ({
           }
           
           // Get current lyrics from props
-          const currentLyrics = latestCurrentLyrics.current
           
           // In the draw loop, only crossfade if sceneTransition is true, otherwise only show currentScene
           if (sceneTransition < 0.95) {
@@ -179,14 +173,14 @@ const CanvasVisualizerComponent: React.FC<CanvasVisualizerProps> = ({
             const currentAlpha = 1 - sceneTransition
             sketch.push()
             sketch.tint(255, 255, 255, currentAlpha * 255)
-            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1, currentLyrics)
+            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1)
             sketch.pop()
           } else {
             // Render new scene with fade in
             const newAlpha = (sceneTransition - 0.95) * 20 // 0.05 * 20 = 1
             sketch.push()
             sketch.tint(255, 255, 255, newAlpha * 255)
-            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1, currentLyrics)
+            renderScene(sketch, currentSceneIndex, smoothedFeatures, isPlaying, 1)
             sketch.pop()
           }
           
@@ -201,39 +195,27 @@ const CanvasVisualizerComponent: React.FC<CanvasVisualizerProps> = ({
         }
         
         // Scene rendering functions with stabilized parameters
-        const renderScene = (sketch: p5, sceneIndex: number, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
+        const renderScene = (sketch: p5, sceneIndex: number, _audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number) => {
           
           // Debug logging - only log once per scene change
           if (!(sketch as any).lastLoggedScene || (sketch as any).lastLoggedScene !== sceneIndex) {
-            console.log(`🎨 Rendering scene ${sceneIndex}, isPlaying: ${_isPlaying}, energy: ${audioFeatures.energy}, canvas size: ${sketch.width}x${sketch.height}`)
+            console.log(`🎨 Rendering scene ${sceneIndex}, isPlaying: ${_isPlaying}, energy: ${_audioFeatures.energy}, canvas size: ${sketch.width}x${sketch.height}`)
             ;(sketch as any).lastLoggedScene = sceneIndex
           }
           
           // Only Cube Dance scene
-          renderCubeDance(sketch, audioFeatures, _isPlaying, _transition, lyrics)
+          renderCubeDance(sketch, _audioFeatures, _isPlaying, _transition)
         }
         
         // Scene 0: Cube Dance - Three.js version
-        const renderCubeDance = (sketch: p5, audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number, lyrics: string[]) => {
-          const energy = audioFeatures.energy || 0
-          const volume = audioFeatures.rms || 0
-          const beat = audioFeatures.beat
-          
-          console.log('Three.js Cube Dance rendering, energy:', energy, 'volume:', volume)
-          
+        const renderCubeDance = (sketch: p5, _audioFeatures: AudioFeatures, _isPlaying: boolean, _transition: number) => {
           // Clear the p5.js canvas and show a placeholder
           sketch.clear()
-          
           // Show a message that Three.js is being used
           sketch.fill(255, 255, 255, 0.8)
           sketch.textAlign(sketch.CENTER, sketch.CENTER)
           sketch.textSize(24)
           sketch.text('Three.js Cube Dance Scene', sketch.width / 2, sketch.height / 2)
-          sketch.text(`Energy: ${energy.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 40)
-          sketch.text(`Volume: ${volume.toFixed(2)}`, sketch.width / 2, sketch.height / 2 + 70)
-          
-          // Note: The actual Three.js rendering will be handled by the ThreeCubeDance component
-          // This p5.js function is just a placeholder
         }
         
 

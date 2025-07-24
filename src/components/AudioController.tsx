@@ -7,7 +7,7 @@ interface AudioControllerProps {
   onPlayStateChange: (isPlaying: boolean) => void
   onTimeUpdate: (time: number) => void
   onDurationChange?: (duration: number) => void
-  onAudioReady: (ready: boolean) => void
+  onAudioReady?: (ready: boolean) => void
   onAudioContextReady?: (ready: boolean) => void
   small?: boolean
 }
@@ -104,7 +104,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
     const audioFile = audioFiles.find(file => file.path && file.path === selectedPath)
     setFileName(audioFile?.name || selectedPath)
     setIsLoading(true)
-    onAudioReady(false)
+    onAudioReady?.(false)
     loadAudioFile(selectedPath)
   }
 
@@ -123,13 +123,13 @@ const AudioController: React.FC<AudioControllerProps> = ({
             onDurationChange?.(player.buffer.duration)
           }
           setIsLoading(false)
-          onAudioReady(true)
+          onAudioReady?.(true)
           setupAnalysis(player)
         },
         onerror: (error) => {
           console.error('Error loading audio:', error)
           setIsLoading(false)
-          onAudioReady(false)
+          onAudioReady?.(false)
         }
       })
 
@@ -137,7 +137,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
     } catch (error) {
       console.error('Error creating player:', error)
       setIsLoading(false)
-      onAudioReady(false)
+      onAudioReady?.(false)
     }
   }
 
@@ -207,7 +207,7 @@ const AudioController: React.FC<AudioControllerProps> = ({
     } catch (error) {
       console.error('Analysis setup error:', error)
       setIsLoading(false)
-      onAudioReady(false)
+      onAudioReady?.(false)
     }
   }
 
