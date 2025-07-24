@@ -1,147 +1,111 @@
-# BGVisuals - AI-Powered Music Visualizer
+# Ballads4Baddies Visualizer
 
-A split-screen, AI-powered music visualizer built with React, p5.js, and Tone.js. Perfect for creating YouTube video backgrounds for music mixes.
+A modern, audio-reactive music visualizer built with React, Three.js, and the Web Audio API. 
+**Designed for both desktop and mobile, with a focus on performance, UX, and code quality.**
 
-## 🎵 Features
+---
 
-### Current Implementation
-- **Split-screen layout**: Left side shows p5.js canvas visuals, right side displays live code editor
-- **Audio-reactive visuals**: 4 different scenes that respond to beat detection and audio features
-- **Real-time code display**: Monaco editor shows the code driving the visuals with typing animations
-- **Scene transitions**: Automatic scene changes every 30 seconds
-- **Brand watermark**: Custom watermark overlay in bottom corner
-- **Audio analysis**: Uses Tone.js + Meyda for real-time audio feature extraction
+## 🚀 Features
 
-### Visual Scenes
-1. **Neon Grid** - Cyberpunk grid with pulsing neon points
-2. **Vaporwave Orbs** - Floating orbs with glow effects
-3. **Pool Party Waves** - Flowing wave patterns
-4. **Cyber Rave** - Scanlines and glitch effects
+- **Hybrid Audio Engine:**  
+  - **Desktop:** Tone.js for playback and analysis  
+  - **Mobile:** Native `<audio>` streaming + Web Audio API for real-time analysis
+- **Audio-Reactive Visuals:**  
+  - Real-time, music-driven 3D and 2D graphics
+- **Responsive UI:**  
+  - Optimized controls and layout for both desktop and mobile
+- **Performance Optimized:**  
+  - Efficient rendering, memory management, and mobile-specific code paths
+- **No Secrets or Audio in Repo:**  
+  - All sensitive data and media are managed outside version control
 
-### Audio Features Detected
-- RMS (energy level)
-- Spectral centroid (brightness)
-- Spectral rolloff
-- Spectral flatness
-- Zero crossing rate
-- MFCC coefficients
-- Beat detection
-- BPM estimation
+---
 
-## 🚀 Getting Started
+## 🏗️ Tech Stack
 
-### Prerequisites
-- Node.js 16+ 
-- npm or yarn
+- **Frontend:** React 18 (TypeScript)
+- **Audio:** Tone.js, Web Audio API
+- **3D/Visuals:** Three.js, p5.js
+- **Styling:** Tailwind CSS
+- **Build Tool:** Vite
 
-### Installation
+---
+
+## 🧩 Architecture
+
+- **Hybrid AudioController:**  
+  - Automatically switches between Tone.js (desktop) and `<audio>`+Web Audio API (mobile)
+- **Modular Components:**  
+  - Visualizer, audio controls, and UI are decoupled for easy extension
+- **Environment-Driven:**  
+  - All config and text via `.env` (never committed)
+
+---
+
+## 🛠️ Getting Started
+
 ```bash
-# Clone the repository
 git clone <your-repo-url>
 cd BGVisuals
-
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
 ```
 
-The app will be available at `http://localhost:5173`
+1. **Add your audio files:**  
+   Place your MP3s in `/public/audio/` (not included in repo).
+2. **Configure environment variables:**  
+   Copy `.env.example` to `.env` and fill in any required values.
+3. **Run locally:**  
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:5173](http://localhost:5173)
 
-### Usage
-1. **Load Audio**: The app automatically loads "Ballads 4 Baddies [No Tags].wav" from `/public/audio/`
-2. **Start Playback**: Click the "Play" button in the top-left corner
-3. **Watch Visuals**: The left canvas will show audio-reactive visuals
-4. **View Code**: The right panel shows the live code with typing animations
-5. **Scene Changes**: Scenes automatically transition every 30 seconds
+---
 
-## 🏗️ Project Structure
+## 🔒 Security & Best Practices
 
-```
-BGVisuals/
-├── public/
-│   ├── audio/                    # Audio files
-│   └── assets/                   # Images and watermarks
-├── src/
-│   ├── components/
-│   │   ├── AudioController.tsx   # Audio playback and analysis
-│   │   ├── BeatDetector.tsx      # Beat detection display
-│   │   ├── CanvasVisualizer.tsx  # p5.js visual renderer
-│   │   └── CodePanel.tsx         # Monaco code editor
-│   ├── types/
-│   │   └── audio.ts              # TypeScript interfaces
-│   ├── App.tsx                   # Main application
-│   └── index.css                 # Global styles
-└── package.json
-```
+- **No audio files, secrets, or personal info are included in this repo.**
+- **Do not commit:**  
+  - Audio files (`/public/audio/`)
+  - Any `.env` or `.env.*` files
+  - API keys or secrets
 
-## 🎨 Customization
+---
 
-### Adding New Scenes
-1. Add scene configuration to `CanvasVisualizer.tsx`
-2. Create corresponding code template in `CodePanel.tsx`
-3. Implement visual logic in the `draw` functions
+## 📱 Mobile & Desktop
 
-### Audio File
-Replace `/public/audio/Ballads 4 Baddies [No Tags].wav` with your own audio file and update the path in `AudioController.tsx`
+- **Desktop:**  
+  - Tone.js for playback and analysis.
+- **Mobile:**  
+  - Native `<audio>` for streaming, with Web Audio API for analysis.
+  - UI is touch-optimized.
 
-### Visual Style
-Modify colors, effects, and animations in `CanvasVisualizer.tsx` to match your brand aesthetic
+---
 
-## 🔮 Future Enhancements
+## 📝 What I Learned / Why I Built This
 
-### Planned Features
-- **Whisper.cpp Integration**: Real-time lyric detection and display
-- **Hugging Face API**: AI-generated visual prompts and lyrics
-- **Video Export**: Record canvas and code pane to video file
-- **More Visual Scenes**: Additional scene types and effects
-- **Custom Audio Analysis**: Advanced beat detection and genre classification
+This project demonstrates:
+- Advanced use of the Web Audio API and hybrid playback strategies
+- Building robust, cross-platform UIs with React and Tailwind
+- Performance optimization for real-time graphics and audio
+- Clean code organization and security best practices
 
-### API Integration Hooks
-The codebase includes placeholders for:
-- Whisper.cpp for speech-to-text
-- Hugging Face transformers for text generation
-- MediaRecorder API for video export
-- FFmpeg.wasm for video processing
+I built this to push my skills in modern web audio/visualization, and to create a portfolio piece that’s both technically challenging and visually impressive.
 
-## 🛠️ Technical Stack
+---
 
-- **Frontend**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS
-- **Audio**: Tone.js + Meyda
-- **Visuals**: p5.js
-- **Code Editor**: Monaco Editor
-- **Beat Detection**: Custom implementation + Magenta.js
+## 🤖 AI/ML Note
 
-## 🎯 Brand Aesthetic
+> **This project does not use AI or machine learning in its current version.**
+> All audio analysis is done with signal processing (Web Audio API, Tone.js). The codebase is modular and ready for future AI/ML features (e.g., lyric generation, genre classification).
 
-The visualizer follows a **neon, pool party, vaporwave** aesthetic with:
-- Bright neon colors (#ff00ff, #00ffff, #ffff00)
-- Glow effects and pulsing animations
-- Cyberpunk and retro-futuristic elements
-- Smooth transitions and audio reactivity
+---
 
-## 📝 Development Notes
+## 🖼️ Screenshot
 
-### Current Issues
-- Some TypeScript linter errors in audio analysis (non-blocking)
-- Audio file path needs to be in `/public/audio/` for Vite to serve it
-- Monaco editor requires proper type definitions
+![Visualizer Screenshot](public/assets/preview-image.png)
 
-### Performance
-- Canvas renders at 60fps
-- Audio analysis runs at ~44kHz
-- Scene transitions are smooth and non-blocking
-
-## 🎬 YouTube Integration
-
-This visualizer is designed to be:
-- **70-minute compatible**: Handles long-form content
-- **Brand-consistent**: Custom watermark and styling
-- **Audio-synced**: Perfect timing with music
-- **Export-ready**: Can be recorded for video upload
+---
 
 ## 📄 License
 
@@ -149,5 +113,5 @@ This visualizer is designed to be:
 
 ---
 
-Built with ❤️ for music visualization and creative coding
+**Built for music, code, and creative technology.**
 

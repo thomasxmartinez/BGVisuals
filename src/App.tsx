@@ -236,7 +236,7 @@ function App() {
         {/* Audio not playing warning (instructions + About) */}
         {!isPlaying && (
           <div className="fixed inset-0 flex items-center justify-center z-[99999] pointer-events-none bg-transparent">
-            <div className="bg-black/60 text-yellow-400 text-base md:text-lg font-bold p-2 md:p-3 flex flex-col items-center max-w-3xl w-full max-h-[90vh] pointer-events-auto overflow-y-auto rounded-lg">
+            <div className="bg-black/60 text-yellow-400 text-sm md:text-base font-bold p-2 md:p-3 flex flex-col items-center max-w-3xl w-full max-h-[90vh] pointer-events-auto overflow-y-auto rounded-lg">
               {/* Instructions - shown on all devices */}
               <div className="mb-2 text-center">
                 {(import.meta.env.VITE_INSTRUCTIONS_TEXT || '').split('\\n').map((line: string, index: number) => (
@@ -248,40 +248,58 @@ function App() {
               </div>
               
               {/* About sections - hidden on mobile, shown on desktop */}
-              <div className="hidden md:block">
-                <div className="w-full flex items-center justify-center my-1">
-                  <span className="text-gray-500 text-xl select-none">⸻</span>
-                </div>
-                <div className="mt-1 max-w-3xl text-xs md:text-sm text-left text-gray-300 font-normal opacity-90 leading-relaxed">
-                  <strong>About the Visual</strong><br/>
-                  {(import.meta.env.VITE_ABOUT_VISUAL_TEXT || '').split('\\n').map((line: string, index: number) => (
-                    <span key={index}>
-                      {line}
-                      {index < (import.meta.env.VITE_ABOUT_VISUAL_TEXT || '').split('\\n').length - 1 && <br />}
-                    </span>
-                  ))}
+              {(import.meta.env.VITE_ABOUT_VISUAL_TEXT || import.meta.env.VITE_ABOUT_MIX_TEXT || import.meta.env.VITE_ABOUT_ME_TEXT) && (
+                <div className="hidden md:block">
                   <div className="w-full flex items-center justify-center my-1">
                     <span className="text-gray-500 text-xl select-none">⸻</span>
                   </div>
-                  <strong>About the Mix</strong><br/>
-                  {(import.meta.env.VITE_ABOUT_MIX_TEXT || '').split('\\n').map((line: string, index: number) => (
-                    <span key={index}>
-                      {line}
-                      {index < (import.meta.env.VITE_ABOUT_MIX_TEXT || '').split('\\n').length - 1 && <br />}
-                    </span>
-                  ))}
-                  <div className="w-full flex items-center justify-center my-1">
-                    <span className="text-gray-500 text-xl select-none">⸻</span>
+                  <div className="mt-1 max-w-3xl text-xs md:text-sm text-left text-gray-300 font-normal opacity-90 leading-relaxed">
+                    {import.meta.env.VITE_ABOUT_VISUAL_TEXT && (
+                      <>
+                        <strong>About the Visual</strong><br/>
+                        {import.meta.env.VITE_ABOUT_VISUAL_TEXT.split('\\n').map((line: string, index: number) => (
+                          <span key={index}>
+                            {line}
+                            {index < import.meta.env.VITE_ABOUT_VISUAL_TEXT.split('\\n').length - 1 && <br />}
+                          </span>
+                        ))}
+                        {(import.meta.env.VITE_ABOUT_MIX_TEXT || import.meta.env.VITE_ABOUT_ME_TEXT) && (
+                          <div className="w-full flex items-center justify-center my-1">
+                            <span className="text-gray-500 text-xl select-none">⸻</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {import.meta.env.VITE_ABOUT_MIX_TEXT && (
+                      <>
+                        <strong>About the Mix</strong><br/>
+                        {import.meta.env.VITE_ABOUT_MIX_TEXT.split('\\n').map((line: string, index: number) => (
+                          <span key={index}>
+                            {line}
+                            {index < import.meta.env.VITE_ABOUT_MIX_TEXT.split('\\n').length - 1 && <br />}
+                          </span>
+                        ))}
+                        {import.meta.env.VITE_ABOUT_ME_TEXT && (
+                          <div className="w-full flex items-center justify-center my-1">
+                            <span className="text-gray-500 text-xl select-none">⸻</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {import.meta.env.VITE_ABOUT_ME_TEXT && (
+                      <>
+                        <strong>About Me</strong><br/>
+                        {import.meta.env.VITE_ABOUT_ME_TEXT.split('\\n').map((line: string, index: number) => (
+                          <span key={index}>
+                            {line}
+                            {index < import.meta.env.VITE_ABOUT_ME_TEXT.split('\\n').length - 1 && <br />}
+                          </span>
+                        ))}
+                      </>
+                    )}
                   </div>
-                  <strong>About Me</strong><br/>
-                  {(import.meta.env.VITE_ABOUT_ME_TEXT || '').split('\\n').map((line: string, index: number) => (
-                    <span key={index}>
-                      {line}
-                      {index < (import.meta.env.VITE_ABOUT_ME_TEXT || '').split('\\n').length - 1 && <br />}
-                    </span>
-                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
