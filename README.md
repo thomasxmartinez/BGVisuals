@@ -100,16 +100,9 @@ I built this to push my skills in modern web audio/visualization, and to create 
 
 ---
 
-## 🤖 AI/ML Note
-
-> **This project does not use AI or machine learning in its current version.**
-> All audio analysis is done with signal processing (Web Audio API, Tone.js). The codebase is modular and ready for future AI/ML features (e.g., lyric generation, genre classification).
-
----
-
 ## 🖼️ Screenshot
 
-![Visualizer Screenshot](public/assets/preview-image.png)
+![Visualizer Screenshot](./preview-image.png)
 
 ---
 
@@ -123,7 +116,7 @@ I built this to push my skills in modern web audio/visualization, and to create 
 
 ## 📄 License
 
-[Your License Here]
+MIT License
 
 ---
 
