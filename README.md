@@ -94,6 +94,12 @@ I built this to push my skills in modern web audio/visualization, and to create 
 
 ---
 
+## 🗣️ Lyric Transcription
+
+> The lyric transcript JSON (`public/audio/ballads_4_baddies_transcript.json`) was generated using AssemblyAI’s speech-to-text API. The app loads this static transcript to display lyrics in sync with the music, but does not make any live API calls or use AI/ML at runtime.
+
+---
+
 ## 🤖 AI/ML Note
 
 > **This project does not use AI or machine learning in its current version.**
