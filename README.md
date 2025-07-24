@@ -113,6 +113,14 @@ I built this to push my skills in modern web audio/visualization, and to create 
 
 ---
 
+## 🌐 Demo & Links
+
+- **Web App:** [https://ballads4baddies.web.app/](https://ballads4baddies.web.app/)
+- **YouTube (Screen Recording):** [https://youtu.be/51tTqc-WIAE](https://youtu.be/51tTqc-WIAE)
+- **Audio on SoundCloud:** [https://soundcloud.com/irlhotperson/ballads-4-baddies](https://soundcloud.com/irlhotperson/ballads-4-baddies)
+
+---
+
 ## 📄 License
 
 [Your License Here]
